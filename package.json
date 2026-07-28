@@ -1,0 +1,10 @@
+{
+  "name": "online-ebook-store-reader",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/js/app.test.js",
+    "test:js": "node --test tests/js/app.test.js"
+  }
+}
