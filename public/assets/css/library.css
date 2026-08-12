@@ -1,0 +1,37 @@
+html {
+    scroll-behavior: smooth;
+}
+
+/* Tùy chỉnh thanh cuộn (Scrollbar) cho trải nghiệm đọc sách tốt hơn */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #087E8B;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #075A64;
+}
+
+/* Hiệu ứng hover cho thẻ sách trong thư viện */
+.book-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.book-card:hover {
+    transform: translateY(-4px);
+}
+
+/* Tùy chỉnh vùng chọn văn bản khi tô bôi đen dòng chữ lúc đọc */
+#reading-text ::selection {
+    background-color: #FFCA3A;
+    color: #102A43;
+}
