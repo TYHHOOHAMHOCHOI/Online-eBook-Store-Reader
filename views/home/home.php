@@ -1,3 +1,9 @@
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Readly - Online eBook Store & Reader</title>
+  <link rel="stylesheet" href="/assets/css/home.css">
+</head>
 <div class="min-h-screen bg-white overflow-y-auto">
 
     <header class="h-16 bg-white border-b border-gray-200 sticky top-0 z-50">
