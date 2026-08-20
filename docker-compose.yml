@@ -53,6 +53,19 @@ services:
     networks:
       - ebook-network
 
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "${PMA_PORT:-8080}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ebook-network
+
 volumes:
   mysql-data:
 

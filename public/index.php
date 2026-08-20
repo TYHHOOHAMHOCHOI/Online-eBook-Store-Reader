@@ -14,6 +14,18 @@ if ($path === '/') {
     exit;
 }
 
+if ($path === '/home') {
+    $pageTitle = 'Readly Home';
+    require BASE_PATH . '/views/home/home.php';
+    exit;
+}
+
+if ($path === '/library') {
+    $pageTitle = 'Thư viện - Readly';
+    require BASE_PATH . '/views/library/main.php';
+    exit;
+}
+
 if ($path === '/publisher-dashboard') {
     $pageTitle = 'Publisher Dashboard';
     require BASE_PATH . '/views/dashboard/publisher/publisher_dashboard.php';
