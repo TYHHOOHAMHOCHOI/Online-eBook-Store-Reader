@@ -7,8 +7,8 @@ if (!function_exists('e')) {
 }
 ?>
 
-<!-- Login Modal Component -->
-<div id="loginModal" class="auth-modal-overlay">
+<!-- Register Modal Component -->
+<div id="registerModal" class="auth-modal-overlay">
     <!-- Backdrop click to close -->
     <a href="/home" class="auth-modal-backdrop" title="Đóng"></a>
 
@@ -28,19 +28,31 @@ if (!function_exists('e')) {
                 <div class="auth-logo-box">
                     <span>R</span>
                 </div>
-                <h2 class="auth-title">Chào mừng trở lại</h2>
-                <p class="auth-subtitle">Đăng nhập để tiếp tục đọc sách và quản lý thư viện của bạn</p>
+                <h2 class="auth-title">Tạo tài khoản mới</h2>
+                <p class="auth-subtitle">Đăng ký để khám phá hàng ngàn cuốn sách hay trên Readly</p>
             </div>
 
-            <!-- Login Form -->
-            <form action="/home" method="GET" class="auth-form" onsubmit="alert('Đăng nhập thành công! Chào mừng bạn quay trở lại.'); return true;">
+            <!-- Register Form -->
+            <form action="/home" method="GET" class="auth-form" onsubmit="alert('Đăng ký tài khoản thành công! Chào mừng bạn đến với Readly.'); return true;">
                 <input type="hidden" name="view" value="home">
+
+                <!-- Họ và tên -->
+                <div class="auth-form-group">
+                    <label class="auth-label" for="reg_name">Họ và tên</label>
+                    <input
+                        id="reg_name"
+                        type="text"
+                        required
+                        placeholder="Nguyễn Văn A"
+                        class="auth-input"
+                    />
+                </div>
 
                 <!-- Email hoặc Số điện thoại -->
                 <div class="auth-form-group">
-                    <label class="auth-label" for="login_contact">Email hoặc số điện thoại</label>
+                    <label class="auth-label" for="reg_contact">Email hoặc số điện thoại</label>
                     <input
-                        id="login_contact"
+                        id="reg_contact"
                         type="text"
                         required
                         placeholder="example@email.com hoặc 090..."
@@ -48,44 +60,64 @@ if (!function_exists('e')) {
                     />
                 </div>
 
+                <!-- Loại tài khoản -->
+                <div class="auth-form-group">
+                    <label class="auth-label" for="reg_role">Loại tài khoản</label>
+                    <select id="reg_role" class="auth-input auth-select">
+                        <option value="READER">📖 Độc giả (Mua & Đọc sách)</option>
+                        <option value="PUBLISHER">🏢 Nhà phát hành (Bán sách & Quản lý)</option>
+                    </select>
+                </div>
+
                 <!-- Mật khẩu -->
                 <div class="auth-form-group">
-                    <label class="auth-label" for="login_password">Mật khẩu</label>
+                    <label class="auth-label" for="reg_password">Mật khẩu</label>
                     <input
-                        id="login_password"
+                        id="reg_password"
                         type="password"
                         required
-                        placeholder="••••••••"
+                        placeholder="Tối thiểu 6 ký tự"
+                        minlength="6"
                         class="auth-input"
                     />
                 </div>
 
-                <!-- Ghi nhớ & Quên mật khẩu -->
-                <div class="auth-remember-row">
+                <!-- Xác nhận mật khẩu -->
+                <div class="auth-form-group">
+                    <label class="auth-label" for="reg_password_confirm">Xác nhận mật khẩu</label>
+                    <input
+                        id="reg_password_confirm"
+                        type="password"
+                        required
+                        placeholder="Nhập lại mật khẩu"
+                        minlength="6"
+                        class="auth-input"
+                    />
+                </div>
+
+                <!-- Điều khoản -->
+                <div class="auth-checkbox-row">
                     <label class="auth-checkbox-label">
-                        <input type="checkbox" checked class="auth-checkbox" />
-                        <span>Ghi nhớ đăng nhập</span>
+                        <input type="checkbox" required class="auth-checkbox" />
+                        <span>Tôi đồng ý với <a href="#" class="auth-link">Điều khoản dịch vụ</a> và <a href="#" class="auth-link">Chính sách bảo mật</a></span>
                     </label>
-                    <a href="#" onclick="alert('Vui lòng kiểm tra email để nhận liên kết khôi phục mật khẩu!'); return false;" class="auth-forgot-link">
-                        Quên mật khẩu?
-                    </a>
                 </div>
 
                 <!-- Submit Button -->
                 <button type="submit" class="auth-submit-btn">
-                    Đăng nhập
+                    Đăng ký ngay
                 </button>
 
                 <!-- Divider -->
                 <div class="auth-divider">
-                    <span>Hoặc đăng nhập bằng</span>
+                    <span>Hoặc đăng ký bằng</span>
                 </div>
 
                 <!-- Social Buttons -->
                 <div class="auth-social-group">
                     <button
                         type="button"
-                        onclick="alert('Đang kết nối đăng nhập với Google...')"
+                        onclick="alert('Đang kết nối đăng ký với Google...')"
                         class="auth-social-btn"
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24">
@@ -99,7 +131,7 @@ if (!function_exists('e')) {
 
                     <button
                         type="button"
-                        onclick="alert('Đang kết nối đăng nhập với Facebook...')"
+                        onclick="alert('Đang kết nối đăng ký với Facebook...')"
                         class="auth-social-btn"
                     >
                         <svg width="18" height="18" fill="#1877F2" viewBox="0 0 24 24">
@@ -110,11 +142,11 @@ if (!function_exists('e')) {
                 </div>
             </form>
 
-            <!-- Bottom Link chuyển sang Đăng ký -->
+            <!-- Bottom Link chuyển sang Đăng nhập -->
             <div class="auth-footer">
-                <span class="auth-footer-text">Chưa có tài khoản? </span>
-                <a href="/home?view=register" class="auth-link-bold">
-                    Đăng ký ngay
+                <span class="auth-footer-text">Đã có tài khoản? </span>
+                <a href="/home?view=login" class="auth-link-bold">
+                    Đăng nhập ngay
                 </a>
             </div>
 

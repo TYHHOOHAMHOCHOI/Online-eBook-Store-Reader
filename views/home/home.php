@@ -35,7 +35,7 @@ $view = $_GET['view'] ?? 'home';
             <nav class="header-nav">
                 <a href="/home">Khám phá</a>
                 <a href="/library">Thư viện</a>
-                <a href="/home?view=login&mode=register">Kích hoạt</a>
+                <a href="/home?view=register">Kích hoạt</a>
             </nav>
 
             <!-- Search and Actions -->
@@ -45,6 +45,7 @@ $view = $_GET['view'] ?? 'home';
                     <input type="text" name="q" placeholder="Tìm tên sách, tác giả..." value="<?= e($_GET['q'] ?? '') ?>">
                 </form>
                 <a href="/home?view=login" class="login-link">Đăng nhập</a>
+                <a href="/home?view=register" class="outline-button" style="text-decoration:none;padding:6px 14px;font-size:14px;">Đăng ký</a>
                 <a href="/home?view=book-list" class="primary-button" style="text-decoration:none;display:inline-block;">Đọc ngay</a>
             </div>
         </div>
@@ -56,6 +57,11 @@ $view = $_GET['view'] ?? 'home';
             // Show HomePage underneath with Login modal overlay
             include __DIR__ . '/component/HomePage.php';
             include __DIR__ . '/component/Login.php';
+            break;
+        case 'register':
+            // Show HomePage underneath with Register modal overlay
+            include __DIR__ . '/component/HomePage.php';
+            include __DIR__ . '/component/Register.php';
             break;
         case 'book-detail':
             include __DIR__ . '/component/BookDetailPage.php';
