@@ -14,6 +14,23 @@ if ($path === '/') {
     exit;
 }
 
+if ($path === '/register') {
+    $pageTitle = 'Đăng ký - Readly';
+    require BASE_PATH . '/views/auth/register.php';
+    exit;
+}
+
+if ($path === '/login') {
+    $pageTitle = 'Đăng nhập - Readly';
+    require BASE_PATH . '/views/auth/login.php';
+    exit;
+}
+
+if ($path === '/logout') {
+    require BASE_PATH . '/views/auth/logout.php';
+    exit;
+}
+
 if ($path === '/home') {
     $pageTitle = 'Readly Home';
     require BASE_PATH . '/views/home/home.php';
