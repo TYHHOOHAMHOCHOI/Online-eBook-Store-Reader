@@ -16,14 +16,17 @@ if ($path === '/') {
 
 if ($path === '/register') {
     $pageTitle = 'Đăng ký - Readly';
-    require BASE_PATH . '/views/auth/register.php';
+    $_GET['view'] = 'register';
+    require BASE_PATH . '/views/home/home.php';
     exit;
 }
 
 if ($path === '/login') {
     $pageTitle = 'Đăng nhập - Readly';
-    require BASE_PATH . '/views/auth/login.php';
+    $_GET['view'] = 'login';
+    require BASE_PATH . '/views/home/home.php';
     exit;
+}
 }
 
 if ($path === '/logout') {
