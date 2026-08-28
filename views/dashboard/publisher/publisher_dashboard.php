@@ -36,7 +36,7 @@ $periodData = [
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
-  <link rel="stylesheet" href="/assets/css/publisher-dashboard.css">
+  <link rel="stylesheet" href="/assets/css/publisher-dashboard.css?v=<?= time() ?>">
 </head>
 <body class="publisher-body">
   <div class="publisher-layout">
@@ -114,6 +114,6 @@ $periodData = [
   </div>
 
   <div class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="/assets/js/publisher-dashboard.js"></script>
+  <script type="module" src="/assets/js/publisher-dashboard.js?v=<?= time() ?>"></script>
 </body>
 </html>

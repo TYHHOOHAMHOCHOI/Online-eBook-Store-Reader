@@ -14,11 +14,19 @@ $messageType = "";
 
 try {
     if (!isset($pdo)) {
-        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        if (function_exists('db')) {
+            $pdo = db();
+        } else {
+            $host = getenv('DB_HOST') ?: 'db';
+            $dbname = getenv('DB_DATABASE') ?: 'ebook_store';
+            $username = getenv('DB_USERNAME') ?: 'ebook_user';
+            $password = getenv('DB_PASSWORD') ?: 'ebook_password';
+            $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        }
     }
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     $dbError = $e->getMessage();
 }
 
@@ -40,6 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
     $list_price    = !empty($_POST['list_price']) ? (float)$_POST['list_price'] : 0;
     $digital_price = !empty($_POST['digital_price']) ? (float)$_POST['digital_price'] : 0;
 
+    $allow_activation_code = isset($_POST['physical_code']) ? 1 : 0;
+    $allow_rental          = isset($_POST['rental']) ? 1 : 0;
+
     if (!empty($title) && !empty($author)) {
 
         // Tạo slug tự động (vd: "Kỹ Năng Lãnh Đạo" -> "ky-nang-lanh-dao")
@@ -50,10 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
 
         // Ánh xạ Thể loại sang ID (Mặc định = 1)
         $categoryMap = [
-            'Kỹ năng sống' => 1,
-            'Kinh doanh'   => 2,
+            'Kỹ năng sống' => 4,
+            'Kinh doanh'   => 8,
             'Tâm lý học'   => 3,
-            'Giáo dục'     => 4,
+            'Tâm lý'       => 3,
+            'Giáo dục'     => 9,
+            'Văn học'      => 1,
+            'Kinh tế'      => 2,
         ];
         $category_id = $categoryMap[$category_name] ?? 1;
 
@@ -87,24 +101,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
         if (isset($pdo)) {
             try {
                 $sql = "INSERT INTO books 
-                        (publisher_id, category_id, title, slug, author, description, isbn, publish_year, price, digital_price, cover_image, file_path, created_at) 
+                        (publisher_id, category_id, title, slug, author, description, isbn, publish_year, list_price, digital_price, cover_path, file_path, allow_activation_code, allow_rental, status, created_at) 
                         VALUES 
-                        (:publisher_id, :category_id, :title, :slug, :author, :description, :isbn, :publish_year, :price, :digital_price, :cover_image, :file_path, NOW())";
+                        (:publisher_id, :category_id, :title, :slug, :author, :description, :isbn, :publish_year, :list_price, :digital_price, :cover_path, :file_path, :allow_activation_code, :allow_rental, 'pending', NOW())";
 
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
-                    ':publisher_id'  => $publisher_id,
-                    ':category_id'   => $category_id,
-                    ':title'         => $title,
-                    ':slug'          => $slug,
-                    ':author'        => $author,
-                    ':description'   => $description,
-                    ':isbn'          => $isbn,
-                    ':publish_year'  => $publish_year,
-                    ':price'         => $list_price,
-                    ':digital_price' => $digital_price,
-                    ':cover_image'   => $cover_path,
-                    ':file_path'     => $file_path
+                    ':publisher_id'           => $publisher_id,
+                    ':category_id'            => $category_id,
+                    ':title'                  => $title,
+                    ':slug'                   => $slug,
+                    ':author'                 => $author,
+                    ':description'            => $description,
+                    ':isbn'                   => $isbn,
+                    ':publish_year'           => $publish_year,
+                    ':list_price'             => $list_price,
+                    ':digital_price'          => $digital_price,
+                    ':cover_path'             => $cover_path,
+                    ':file_path'              => $file_path,
+                    ':allow_activation_code'  => $allow_activation_code,
+                    ':allow_rental'           => $allow_rental,
                 ]);
 
                 $message = "🎉 Đã thêm thành công cuốn sách '" . htmlspecialchars($title) . "' vào Cơ sở dữ liệu!";
@@ -133,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
     </div>
 <?php endif; ?>
 
-<form class="book-form panel" method="post" enctype="multipart/form-data" data-book-form>
+<form class="book-form panel" method="post" action="/publisher-dashboard?page=add-book" enctype="multipart/form-data">
   <div class="form-heading">
     <div>
       <h2>Thông tin xuất bản</h2>

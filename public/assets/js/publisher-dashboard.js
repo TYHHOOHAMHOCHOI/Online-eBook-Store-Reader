@@ -231,12 +231,8 @@ function initialize() {
     }
     if (fileName) fileName.textContent = file.name;
   });
-  bySelector("[data-book-form]")?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    showToast(
-      "Thông tin sách đã sẵn sàng. Hãy kết nối endpoint PHP để lưu vào cơ sở dữ liệu.",
-    );
-  });
+  // Form [data-book-form] được xử lý trực tiếp bằng PHP POST trong AddBookForm.php
+
 
   const modal = bySelector("[data-promotion-modal]");
   bySelector("[data-open-promotion]")?.addEventListener("click", () => {
