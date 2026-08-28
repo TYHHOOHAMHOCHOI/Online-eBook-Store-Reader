@@ -1,3 +1,138 @@
+<?php
+declare(strict_types=1);
+
+// ==========================================================
+// 1. KẾT NỐI CƠ SỞ DỮ LIỆU (DATABASE PDO)
+// ==========================================================
+$host = 'db';
+$dbname = 'ebook_store';
+$username = 'ebook_user';
+$password = 'ebook_password';
+
+$message = "";
+$messageType = "";
+
+try {
+    if (!isset($pdo)) {
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    }
+} catch (PDOException $e) {
+    $dbError = $e->getMessage();
+}
+
+// Lấy ID Nhà xuất bản (Mặc định là 1 nếu chưa có Session)
+$publisher_id = $_SESSION['publisher_id'] ?? $_SESSION['user_id'] ?? 1;
+
+// ==========================================================
+// 2. XỬ LÝ KHI NHẤN NÚT "LƯU SÁCH" (SUBMIT FORM)
+// ==========================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
+    
+    // Lấy dữ liệu từ Form (Khớp chính xác với name trong HTML)
+    $title         = trim($_POST['title'] ?? '');
+    $author        = trim($_POST['author'] ?? '');
+    $category_name = trim($_POST['category'] ?? '');
+    $description   = trim($_POST['description'] ?? '');
+    $isbn          = trim($_POST['isbn'] ?? '');
+    $publish_year  = !empty($_POST['publish_year']) ? (int)$_POST['publish_year'] : (int)date('Y');
+    $list_price    = !empty($_POST['list_price']) ? (float)$_POST['list_price'] : 0;
+    $digital_price = !empty($_POST['digital_price']) ? (float)$_POST['digital_price'] : 0;
+
+    if (!empty($title) && !empty($author)) {
+
+        // Tạo slug tự động (vd: "Kỹ Năng Lãnh Đạo" -> "ky-nang-lanh-dao")
+        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+        if (empty($slug)) {
+            $slug = 'book-' . time();
+        }
+
+        // Ánh xạ Thể loại sang ID (Mặc định = 1)
+        $categoryMap = [
+            'Kỹ năng sống' => 1,
+            'Kinh doanh'   => 2,
+            'Tâm lý học'   => 3,
+            'Giáo dục'     => 4,
+        ];
+        $category_id = $categoryMap[$category_name] ?? 1;
+
+        // Xử lý Upload Ảnh Bìa (name="cover")
+        $cover_path = '';
+        if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir_cover = __DIR__ . '/../../../../public/uploads/covers/';
+            if (!file_exists($upload_dir_cover)) {
+                mkdir($upload_dir_cover, 0777, true);
+            }
+            $cover_filename = time() . '_' . basename($_FILES['cover']['name']);
+            if (move_uploaded_file($_FILES['cover']['tmp_name'], $upload_dir_cover . $cover_filename)) {
+                $cover_path = 'uploads/covers/' . $cover_filename;
+            }
+        }
+
+        // Xử lý Upload File EPUB (name="epub")
+        $file_path = '';
+        if (isset($_FILES['epub']) && $_FILES['epub']['error'] === UPLOAD_ERR_OK) {
+            $upload_dir_book = __DIR__ . '/../../../../public/uploads/books/';
+            if (!file_exists($upload_dir_book)) {
+                mkdir($upload_dir_book, 0777, true);
+            }
+            $book_filename = time() . '_' . basename($_FILES['epub']['name']);
+            if (move_uploaded_file($_FILES['epub']['tmp_name'], $upload_dir_book . $book_filename)) {
+                $file_path = 'uploads/books/' . $book_filename;
+            }
+        }
+
+        // Lưu vào CSDL
+        if (isset($pdo)) {
+            try {
+                $sql = "INSERT INTO books 
+                        (publisher_id, category_id, title, slug, author, description, isbn, publish_year, price, digital_price, cover_image, file_path, created_at) 
+                        VALUES 
+                        (:publisher_id, :category_id, :title, :slug, :author, :description, :isbn, :publish_year, :price, :digital_price, :cover_image, :file_path, NOW())";
+
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    ':publisher_id'  => $publisher_id,
+                    ':category_id'   => $category_id,
+                    ':title'         => $title,
+                    ':slug'          => $slug,
+                    ':author'        => $author,
+                    ':description'   => $description,
+                    ':isbn'          => $isbn,
+                    ':publish_year'  => $publish_year,
+                    ':price'         => $list_price,
+                    ':digital_price' => $digital_price,
+                    ':cover_image'   => $cover_path,
+                    ':file_path'     => $file_path
+                ]);
+
+                $message = "🎉 Đã thêm thành công cuốn sách '" . htmlspecialchars($title) . "' vào Cơ sở dữ liệu!";
+                $messageType = "success";
+            } catch (PDOException $e) {
+                $message = "Lỗi lưu CSDL: " . $e->getMessage();
+                $messageType = "error";
+            }
+        } else {
+            $message = "Chưa kết nối được CSDL: " . ($dbError ?? '');
+            $messageType = "error";
+        }
+    } else {
+        $message = "Vui lòng nhập đầy đủ Tên sách và Tác giả!";
+        $messageType = "warning";
+    }
+}
+?>
+
+<?php if (!empty($message)): ?>
+    <div style="padding: 14px 20px; margin-bottom: 20px; border-radius: 8px; font-weight: 600; 
+        background-color: <?= $messageType === 'success' ? '#d1fae5' : ($messageType === 'warning' ? '#fef3c7' : '#fee2e2') ?>; 
+        color: <?= $messageType === 'success' ? '#065f46' : ($messageType === 'warning' ? '#92400e' : '#991b1b') ?>;
+        border: 1px solid <?= $messageType === 'success' ? '#a7f3d0' : ($messageType === 'warning' ? '#fde68a' : '#fecaca') ?>;">
+        <?= htmlspecialchars($message) ?>
+    </div>
+<?php endif; ?>
+
 <form class="book-form panel" method="post" enctype="multipart/form-data" data-book-form>
   <div class="form-heading">
     <div>
