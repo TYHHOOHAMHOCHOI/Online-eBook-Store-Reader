@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+ob_start();
+
 require dirname(__DIR__) . '/bootstrap/app.php';
 
 $app = config('app');
@@ -26,7 +31,6 @@ if ($path === '/login') {
     $_GET['view'] = 'login';
     require BASE_PATH . '/views/home/home.php';
     exit;
-}
 }
 
 if ($path === '/logout') {

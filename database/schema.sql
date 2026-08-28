@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id`                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name`              VARCHAR(120)    NOT NULL,
-  `email`             VARCHAR(190)    NOT NULL,
+  `email`             VARCHAR(190)    NULL,
   `phone`             VARCHAR(20)     NULL,
   `password_hash`     VARCHAR(255)    NOT NULL,
   `role`              ENUM('customer', 'publisher', 'admin') NOT NULL DEFAULT 'customer',

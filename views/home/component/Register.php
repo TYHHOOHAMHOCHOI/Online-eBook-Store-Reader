@@ -136,6 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (empty($registerErrors)) {
 
+                $dbRole = match ($role) {
+                    'PUBLISHER' => 'publisher',
+                    default => 'customer',
+                };
+
                 $passwordHash = password_hash(
                     $password,
                     PASSWORD_DEFAULT
@@ -165,9 +170,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'email' => $email,
                     'phone' => $phone,
                     'password_hash' => $passwordHash,
-                    'role' => $role
+                    'role' => $dbRole
                 ]);
 
+                $newUserId = (int)$database->lastInsertId();
+
+                if ($dbRole === 'publisher') {
+                    $stmtPub = $database->prepare(
+                        'INSERT INTO publishers (user_id, company_name, company_email, company_phone)
+                         VALUES (:user_id, :company_name, :company_email, :company_phone)'
+                    );
+                    $stmtPub->execute([
+                        'user_id' => $newUserId,
+                        'company_name' => $name,
+                        'company_email' => $email,
+                        'company_phone' => $phone
+                    ]);
+                }
 
                 // =========================
                 // ĐĂNG KÝ THÀNH CÔNG
@@ -178,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
         } catch (PDOException $e) {
-
+            error_log('Register PDO error: ' . $e->getMessage());
             $registerErrors[] = 'Không thể đăng ký tài khoản. Vui lòng thử lại.';
         }
     }

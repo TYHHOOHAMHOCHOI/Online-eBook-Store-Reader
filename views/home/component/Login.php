@@ -33,11 +33,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($email === '') {
 
-        $loginErrors[] = 'Vui lòng nhập email.';
+        $loginErrors[] = 'Vui lòng nhập email hoặc số điện thoại.';
 
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    } elseif (
+        !filter_var($email, FILTER_VALIDATE_EMAIL)
+        && !preg_match('/^[0-9]{9,11}$/', $email)
+    ) {
 
-        $loginErrors[] = 'Email không hợp lệ.';
+        $loginErrors[] = 'Email hoặc số điện thoại không hợp lệ.';
     }
 
     if ($password === '') {
@@ -58,12 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $database->prepare(
                 'SELECT id, name, email, phone, password_hash, role
                  FROM users
-                 WHERE email = :email
+                 WHERE (email IS NOT NULL AND email = :contact)
+                    OR (phone IS NOT NULL AND phone = :contact)
                  LIMIT 1'
             );
 
             $stmt->execute([
-                'email' => $email
+                'contact' => $email
             ]);
 
             $user = $stmt->fetch();
@@ -71,12 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Không tìm thấy tài khoản
             if (!$user) {
 
-                $loginErrors[] = 'Email hoặc mật khẩu không chính xác.';
+                $loginErrors[] = 'Email/Số điện thoại hoặc mật khẩu không chính xác.';
 
             // Sai mật khẩu
             } elseif (!password_verify($password, $user['password_hash'])) {
 
-                $loginErrors[] = 'Email hoặc mật khẩu không chính xác.';
+                $loginErrors[] = 'Email/Số điện thoại hoặc mật khẩu không chính xác.';
 
             } else {
 
@@ -88,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['user_name'] = $user['name'];
-                $_SESSION['user_email'] = $user['email'];
+                $_SESSION['user_email'] = $user['email'] ?? $user['phone'];
                 $_SESSION['user_role'] = $user['role'];
 
                 // Chuyển về Home
@@ -205,25 +209,25 @@ if (!function_exists('e')) {
                 class="auth-form"
             >
 
-                <!-- Email -->
+                <!-- Email / Số điện thoại -->
                 <div class="auth-form-group">
 
                     <label
                         class="auth-label"
                         for="login_contact"
                     >
-                        Email
+                        Email hoặc số điện thoại
                     </label>
 
                     <input
                         id="login_contact"
-                        type="email"
+                        type="text"
                         name="email"
                         value="<?= e($email) ?>"
                         required
-                        placeholder="example@email.com"
+                        placeholder="example@email.com hoặc 090..."
                         class="auth-input"
-                        autocomplete="email"
+                        autocomplete="username"
                     >
 
                 </div>
