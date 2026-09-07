@@ -3,9 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ==========================================
-// 1. KẾT NỐI CƠ SỞ DỮ LIỆU (DATABASE PDO)
-// ==========================================
+// 1. KẾT NỐI DATABASE (PDO)
 $host = 'db';
 $dbname = 'ebook_store';
 $username = 'ebook_user';
@@ -16,124 +14,186 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die("<div style='color:red; padding:15px; background:#fee2e2; border-radius:5px;'>
-            <strong>Lỗi kết nối CSDL:</strong> " . $e->getMessage() . "<br>
-            <em>Vui lòng kiểm tra lại Docker hoặc thông tin kết nối Adminer.</em>
-         </div>");
+    die("Lỗi kết nối CSDL: " . htmlspecialchars($e->getMessage()));
 }
 
-// Giả lập ID người dùng hiện tại (Sau này khi có Đăng nhập sẽ đổi thành $_SESSION['user_id'])
 $current_user_id = $_SESSION['user_id'] ?? 1;
-$message = "";
-$messageType = "success";
 
-// Xử lý Thêm sách có sẵn vào Thư viện cá nhân
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_to_library') {
-    $book_id_to_add = (int)$_POST['book_id'];
+// 2. LẤY BỘ LỌC VÀ SẮP XẾP TỪ URL
+$filter = $_GET['filter'] ?? 'all';
+$sort = $_GET['sort'] ?? 'recent'; // recent | title | progress
 
-    // Kiểm tra xem sách đã có trong thư viện người dùng chưa
-    $checkStmt = $pdo->prepare("SELECT id FROM user_books WHERE user_id = ? AND book_id = ?");
-    $checkStmt->execute([$current_user_id, $book_id_to_add]);
-
-    if ($checkStmt->rowCount() === 0) {
-        $insertStmt = $pdo->prepare("
-            INSERT INTO user_books (user_id, book_id, reading_status, progress_percent, acquired_at) 
-            VALUES (?, ?, 'unread', 0, NOW())
-        ");
-        if ($insertStmt->execute([$current_user_id, $book_id_to_add])) {
-            $message = "Đã thêm sách vào thư viện thành công!";
-            $messageType = "success";
-        }
-    } else {
-        $message = "Sách này đã tồn tại trong thư viện của bạn rồi!";
-        $messageType = "warning";
-    }
-}
-
-// Lấy danh sách $books của user từ bảng `user_books`
-$queryBooks = "
+// 3. TRUY VẤN DANH SÁCH SÁCH TRONG THƯ VIỆN
+$sql = "
     SELECT 
-        b.id, 
-        b.title, 
-        b.author, 
+        b.id, b.title, b.author, b.cover_image,
         COALESCE(ub.progress_percent, 0) AS progress,
-        '#087E8B' AS color,
-        ub.reading_status
+        COALESCE(ub.reading_status, 'unread') AS reading_status,
+        ub.updated_at, ub.acquired_at
     FROM user_books ub
     INNER JOIN books b ON ub.book_id = b.id
-    WHERE ub.user_id = ?
-    ORDER BY ub.acquired_at DESC
+    WHERE ub.user_id = :user_id
 ";
-$stmtBooks = $pdo->prepare($queryBooks);
-$stmtBooks->execute([$current_user_id]);
+
+if (in_array($filter, ['reading', 'unread', 'completed'])) {
+    $sql .= " AND ub.reading_status = :filter_status";
+}
+
+// Xử lý Sắp xếp
+switch ($sort) {
+    case 'title':
+        $sql .= " ORDER BY b.title ASC";
+        break;
+    case 'progress':
+        $sql .= " ORDER BY ub.progress_percent DESC";
+        break;
+    case 'recent':
+    default:
+        $sql .= " ORDER BY ub.updated_at DESC, ub.acquired_at DESC";
+        break;
+}
+
+$stmtBooks = $pdo->prepare($sql);
+$params = [':user_id' => $current_user_id];
+if (in_array($filter, ['reading', 'unread', 'completed'])) {
+    $params[':filter_status'] = $filter;
+}
+$stmtBooks->execute($params);
 $books = $stmtBooks->fetchAll();
 
-// Lấy danh sách $recentActivities từ bảng `highlights`
-$recentActivities = [];
-try {
-    $queryActivities = "
-        SELECT 
-            h.id, 
-            h.content AS quote, 
-            b.title AS book, 
-            COALESCE(h.page_number, 1) AS page, 
-            '#FFCA3A' AS highlightColor
-        FROM highlights h
-        INNER JOIN books b ON h.book_id = b.id
-        WHERE h.user_id = ?
-        ORDER BY h.created_at DESC
-        LIMIT 5
-    ";
-    $stmtAct = $pdo->prepare($queryActivities);
-    $stmtAct->execute([$current_user_id]);
-    $recentActivities = $stmtAct->fetchAll();
-} catch (Exception $e) {
-    $recentActivities = [];
-}
+// 4. LẤY DỮ LIỆU HOẠT ĐỘNG GẦN ĐÂY (3 cuốn đọc gần nhất)
+$stmtRecent = $pdo->prepare("
+    SELECT b.id, b.title, b.author, b.cover_image, ub.progress_percent, ub.updated_at
+    FROM user_books ub
+    INNER JOIN books b ON ub.book_id = b.id
+    WHERE ub.user_id = ? AND ub.reading_status = 'reading'
+    ORDER BY ub.updated_at DESC LIMIT 3
+");
+$stmtRecent->execute([$current_user_id]);
+$recentBooks = $stmtRecent->fetchAll();
 
-// Xử lý mở trình đọc sách
-if (isset($_GET['read'])) {
-    $bookId = (int)$_GET['read'];
-    
-    $stmtReader = $pdo->prepare("
-        SELECT b.*, COALESCE(ub.progress_percent, 0) AS progress 
-        FROM books b 
-        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = ?
-        WHERE b.id = ?
-    ");
-    $stmtReader->execute([$current_user_id, $bookId]);
-    $selectedBook = $stmtReader->fetch();
-
-    if ($selectedBook) {
-        include __DIR__ . '/component/BookReader.php';
-        exit;
-    }
-}
+// 5. THỐNG KÊ MỤC TIÊU ĐỌC SÁCH HÔM NAY (Ví dụ: 13/20 phút = 65%)
+$targetMinutes = 20;
+$readMinutesToday = 13; // Lấy từ DB hoặc tính toán thời gian session
+$goalPercent = min(100, round(($readMinutesToday / $targetMinutes) * 100));
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thư Viện - Readly</title>
-    <link rel="stylesheet" href="/assets/css/library.css">
+    <title>Thư viện của bạn - Readly</title>
+    <style>
+        :root { --primary-color: #087E8B; --bg-light: #f9fafb; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg-light); margin: 0; padding: 20px; color: #1f2937; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* Banner Thư viện & Widget Mục tiêu */
+        .library-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 24px; border-radius: 16px; border: 1px solid #e5e7eb; margin-bottom: 24px; }
+        .goal-card { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px 24px; display: flex; align-items: center; gap: 20px; }
+        .goal-circle { width: 60px; height: 60px; border-radius: 50%; background: conic-gradient(#10b981 <?= $goalPercent ?>%, #e5e7eb 0); display: flex; align-items: center; justify-content: center; position: relative; }
+        .goal-circle-inner { width: 46px; height: 46px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; color: #047857; }
+
+        /* Thanh điều hướng Lọc & Sắp xếp */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .tabs { display: flex; gap: 8px; }
+        .tab-btn { text-decoration: none; padding: 8px 16px; border-radius: 20px; color: #4b5563; font-weight: 500; background: #fff; border: 1px solid #e5e7eb; font-size: 0.9rem; }
+        .tab-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .sort-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; font-size: 0.9rem; }
+
+        /* Lưới Sách & Card Sách */
+        .section-title { font-size: 1.2rem; font-weight: 700; margin: 24px 0 12px 0; }
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .book-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; display: flex; flex-direction: column; }
+        .book-cover { width: 100%; height: 230px; object-fit: cover; background: #f3f4f6; }
+        .book-body { padding: 14px; display: flex; flex-direction: column; flex: 1; }
+        .book-title { font-size: 0.95rem; font-weight: 700; margin: 0 0 4px 0; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+        .book-author { font-size: 0.8rem; color: #6b7280; margin-bottom: 10px; }
+        .progress-bar-bg { width: 100%; height: 5px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: auto; }
+        .progress-bar-fill { height: 100%; background: var(--primary-color); }
+        .btn-read { display: block; text-align: center; background: var(--primary-color); color: #fff; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <div class="library-container">
+    <div class="container">
         
-        <?php if (!empty($message)): ?>
-            <div style="padding: 12px 20px; margin: 15px 0; border-radius: 8px; font-weight: 500; 
-                background-color: <?= $messageType === 'success' ? '#d1fae5' : ($messageType === 'warning' ? '#fef3c7' : '#fee2e2') ?>; 
-                color: <?= $messageType === 'success' ? '#065f46' : ($messageType === 'warning' ? '#92400e' : '#991b1b') ?>;">
-                <?= htmlspecialchars($message) ?>
+        <!-- HEADER & WIDGET MỤC TIÊU HÔM NAY -->
+        <div class="library-header">
+            <div>
+                <h1 style="margin: 0 0 6px 0; font-size: 1.6rem;">Thư viện của bạn</h1>
+                <p style="margin: 0; color: #6b7280; font-size: 0.95rem;">Chào mừng trở lại, hôm nay bạn muốn đọc gì?</p>
+            </div>
+            
+            <div class="goal-card">
+                <div>
+                    <strong style="display: block; font-size: 0.9rem; color: #065f46;">Mục tiêu hôm nay</strong>
+                    <span style="font-size: 0.8rem; color: #047857;">Bạn đã đọc <b><?= $readMinutesToday ?> phút</b> trong ngày hôm nay.</span>
+                </div>
+                <div class="goal-circle">
+                    <div class="goal-circle-inner"><?= $goalPercent ?>%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MỤC HOẠT ĐỘNG GẦN ĐÂY -->
+        <?php if (!empty($recentBooks)): ?>
+            <div class="section-title">⏱️ Hoạt động gần đây</div>
+            <div class="book-grid" style="margin-bottom: 30px;">
+                <?php foreach ($recentBooks as $rb): ?>
+                    <div class="book-card" style="border-left: 4px solid var(--primary-color);">
+                        <div class="book-body">
+                            <h4 class="book-title"><?= htmlspecialchars($rb['title']) ?></h4>
+                            <p class="book-author"><?= htmlspecialchars($rb['author']) ?></p>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: <?= (int)$rb['progress_percent'] ?>%;"></div>
+                            </div>
+                            <a href="?read=<?= $rb['id'] ?>" class="btn-read">Đọc tiếp (<?= (int)$rb['progress_percent'] ?>%)</a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <?php include __DIR__ . '/component/LibraryHeader.php'; ?>
-        <?php include __DIR__ . '/component/LibraryOverview.php'; ?>
-        <?php include __DIR__ . '/component/LibraryBooks.php'; ?>
-        <?php include __DIR__ . '/component/RecentActivities.php'; ?>
-        <?php include __DIR__ . '/component/LibraryFooter.php'; ?>
+        <!-- THANH CÔNG CỤ LỌC & SẮP XẾP -->
+        <div class="toolbar">
+            <div class="tabs">
+                <a href="?filter=all&sort=<?= $sort ?>" class="tab-btn <?= $filter === 'all' ? 'active' : '' ?>">Tất cả</a>
+                <a href="?filter=reading&sort=<?= $sort ?>" class="tab-btn <?= $filter === 'reading' ? 'active' : '' ?>">Đang đọc</a>
+                <a href="?filter=unread&sort=<?= $sort ?>" class="tab-btn <?= $filter === 'unread' ? 'active' : '' ?>">Chưa đọc</a>
+                <a href="?filter=completed&sort=<?= $sort ?>" class="tab-btn <?= $filter === 'completed' ? 'active' : '' ?>">Đã hoàn thành</a>
+            </div>
+
+            <div>
+                <label for="sort" style="font-size: 0.85rem; color: #6b7280; font-weight: 500;">Sắp xếp theo:</label>
+                <select id="sort" class="sort-select" onchange="location = this.value;">
+                    <option value="?filter=<?= $filter ?>&sort=recent" <?= $sort === 'recent' ? 'selected' : '' ?>>Gần đây nhất</option>
+                    <option value="?filter=<?= $filter ?>&sort=title" <?= $sort === 'title' ? 'selected' : '' ?>>Tên sách (A-Z)</option>
+                    <option value="?filter=<?= $filter ?>&sort=progress" <?= $sort === 'progress' ? 'selected' : '' ?>>Tiến độ đọc</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH SÁCH -->
+        <div class="book-grid">
+            <?php if (empty($books)): ?>
+                <p style="grid-column: 1/-1; color: #6b7280; text-align: center; padding: 40px;">Không tìm thấy cuốn sách nào trong mục này.</p>
+            <?php else: ?>
+                <?php foreach ($books as $b): ?>
+                    <div class="book-card">
+                        <img src="<?= htmlspecialchars(!empty($b['cover_image']) ? '/' . ltrim($b['cover_image'], '/') : 'https://via.placeholder.com/200x300') ?>" class="book-cover" alt="<?= htmlspecialchars($b['title']) ?>">
+                        <div class="book-body">
+                            <h3 class="book-title"><?= htmlspecialchars($b['title']) ?></h3>
+                            <p class="book-author"><?= htmlspecialchars($b['author']) ?></p>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: <?= (int)$b['progress'] ?>%;"></div>
+                            </div>
+                            <a href="?read=<?= $b['id'] ?>" class="btn-read"><?= $b['progress'] > 0 ? 'Đọc tiếp' : 'Bắt đầu đọc' ?></a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+
     </div>
 </body>
 </html>
