@@ -1,192 +1,497 @@
 <?php
+
+declare(strict_types=1);
+
 if (!function_exists('e')) {
-    function e($value)
+    function e(string $value): string
     {
-        return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 }
 
-$booksData = [
-    [
-        'title' => 'Nhà giả kim',
-        'author' => 'Paulo Coelho',
-        'price' => '89.000đ',
-        'rating' => '4.8',
-        'readers' => '12.5K',
-        'coverColor' => 'cover-alchemist',
-        'publisher' => 'NXB Hội Nhà Văn',
-        'year' => '2020',
-        'pages' => '228',
-        'description' => 'Nhà giả kim (The Alchemist) kể về chuyến phiêu lưu kỳ diệu của Santiago — một cậu bé chăn cừu người Tây Ban Nha — trong hành trình theo đuổi giấc mơ tìm kho báu ở Kim tự tháp Ai Cập. Qua câu chuyện giản dị mà sâu sắc, Paulo Coelho gửi gắm thông điệp rằng: khi bạn thực sự khao khát điều gì, cả vũ trụ sẽ hợp lực giúp bạn đạt được nó.'
-    ],
-    [
-        'title' => 'Cây cam ngọt của tôi',
-        'author' => 'José Mauro de Vasconcelos',
-        'price' => '95.000đ',
-        'rating' => '4.9',
-        'readers' => '18.2K',
-        'coverColor' => 'cover-orange-tree',
-        'publisher' => 'NXB Hội Nhà Văn',
-        'year' => '2021',
-        'pages' => '244',
-        'description' => 'Câu chuyện về cậu bé Zezé 5 tuổi sống trong một gia đình nghèo tại Brazil. Với trí tưởng tượng phong phú, Zezé biến cây cam ngọt trong vườn thành người bạn tri kỷ. Cuốn sách là hành trình khám phá thế giới đầy yêu thương và nước mắt qua đôi mắt trẻ thơ.'
-    ],
-    [
-        'title' => 'Tư duy nhanh và chậm',
-        'author' => 'Daniel Kahneman',
-        'price' => '159.000đ',
-        'rating' => '4.7',
-        'readers' => '8.9K',
-        'coverColor' => 'cover-thinking',
-        'publisher' => 'NXB Thế Giới',
-        'year' => '2019',
-        'pages' => '568',
-        'description' => 'Daniel Kahneman — nhà tâm lý học đoạt giải Nobel Kinh tế — giải thích hai hệ thống tư duy chi phối mọi quyết định của con người: Hệ thống 1 (nhanh, trực giác) và Hệ thống 2 (chậm, logic). Cuốn sách thay đổi cách bạn nhìn nhận về suy nghĩ và hành vi của chính mình.'
-    ],
-    [
-        'title' => 'Ikigai',
-        'author' => 'Héctor García',
-        'price' => '79.000đ',
-        'rating' => '4.6',
-        'readers' => '15.3K',
-        'coverColor' => 'cover-ikigai',
-        'publisher' => 'NXB Lao Động',
-        'year' => '2022',
-        'pages' => '196',
-        'description' => 'Ikigai — bí mật sống trường thọ và hạnh phúc của người Nhật. Cuốn sách khám phá triết lý Ikigai thông qua lối sống của cư dân vùng Okinawa — nơi có tỷ lệ người sống trên 100 tuổi cao nhất thế giới. Tìm ra lý do để thức dậy mỗi sáng chính là chìa khóa của một cuộc đời viên mãn.'
-    ]
-];
+if (!function_exists('formatPrice')) {
+    function formatPrice(float|int|null $price): string
+    {
+        return number_format((float)$price, 0, ',', '.') . ' đ';
+    }
+}
 
 $bookId = (int)($_GET['book'] ?? 0);
-if (!isset($booksData[$bookId])) {
-    $bookId = 0;
-}
-$book = $booksData[$bookId];
 
-$relatedBooks = [
-    ['title' => 'Alchemist Tales',   'author' => 'Various Authors', 'price' => '85.000đ', 'rating' => 4.6, 'sold' => '8.3K',  'coverBg' => 'background: linear-gradient(135deg,#f59e0b,#b45309)'],
-    ['title' => 'Tuổi thơ dữ dội',  'author' => 'Phùng Quán',      'price' => '69.000đ', 'rating' => 4.8, 'sold' => '12.1K', 'coverBg' => 'background: linear-gradient(135deg,#10b981,#065f46)'],
-    ['title' => 'Nghệ thuật tư duy', 'author' => 'Rolf Dobelli',    'price' => '129.000đ','rating' => 4.7, 'sold' => '6.7K',  'coverBg' => 'background: linear-gradient(135deg,#3b82f6,#1e1b4b)'],
-    ['title' => 'Life Purpose Guide','author' => 'Richard Leider',  'price' => '95.000đ', 'rating' => 4.5, 'sold' => '9.2K',  'coverBg' => 'background: linear-gradient(135deg,#ec4899,#9f1239)'],
-    ['title' => 'Đắc nhân tâm',      'author' => 'Dale Carnegie',   'price' => '79.000đ', 'rating' => 4.9, 'sold' => '45.8K', 'coverBg' => 'background: linear-gradient(135deg,#6b7280,#111827)'],
-];
+if ($bookId <= 0) {
+    echo '<div class="container"><p>Không tìm thấy sách.</p></div>';
+    return;
+}
+
+$db = db();
+
+
+
+$userId = (int)($_SESSION['user_id'] ?? 0);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_favorite'])) {
+
+    if ($userId <= 0) {
+        header('Location: /login');
+        exit;
+    }
+
+    $check = $db->prepare("
+        SELECT id
+        FROM favorites
+        WHERE user_id = ? AND book_id = ?
+        LIMIT 1
+    ");
+
+    $check->execute([$userId, $bookId]);
+    $favorite = $check->fetch(PDO::FETCH_ASSOC);
+
+    if ($favorite) {
+        $delete = $db->prepare("
+            DELETE FROM favorites
+            WHERE user_id = ? AND book_id = ?
+        ");
+
+        $delete->execute([$userId, $bookId]);
+    } else {
+        $insert = $db->prepare("
+            INSERT INTO favorites (user_id, book_id, created_at)
+            VALUES (?, ?, NOW())
+        ");
+
+        $insert->execute([$userId, $bookId]);
+    }
+
+    header('Location: /home?view=book-detail&book=' . $bookId);
+    exit;
+}
+
+
+$stmt = $db->prepare("
+    SELECT
+        b.*,
+        c.name AS category_name,
+        p.name AS publisher_name
+    FROM books b
+    LEFT JOIN categories c
+        ON c.id = b.category_id
+    LEFT JOIN publishers p
+        ON p.id = b.publisher_id
+    WHERE b.id = ?
+      AND b.status = 'published'
+    LIMIT 1
+");
+
+$stmt->execute([$bookId]);
+
+$book = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$book) {
+    echo '
+        <div class="container">
+            <p>Không tìm thấy sách hoặc sách chưa được xuất bản.</p>
+            <a href="/home">Quay lại trang chủ</a>
+        </div>
+    ';
+    return;
+}
+
+
+$isFavorite = false;
+
+if ($userId > 0) {
+    $favoriteStmt = $db->prepare("
+        SELECT id
+        FROM favorites
+        WHERE user_id = ? AND book_id = ?
+        LIMIT 1
+    ");
+
+    $favoriteStmt->execute([$userId, $bookId]);
+
+    $isFavorite = (bool)$favoriteStmt->fetchColumn();
+}
+
+
+
+$digitalPrice = (float)($book['digital_price'] ?? 0);
+$salePrice = $book['sale_price'] !== null
+    ? (float)$book['sale_price']
+    : 0;
+
+$listPrice = (float)($book['list_price'] ?? 0);
+
+$currentPrice = $salePrice > 0
+    ? $salePrice
+    : $digitalPrice;
+
+$isDiscounted = $salePrice > 0 && $listPrice > $salePrice;
+
+
+$relatedStmt = $db->prepare("
+    SELECT
+        b.*,
+        c.name AS category_name
+    FROM books b
+    LEFT JOIN categories c
+        ON c.id = b.category_id
+    WHERE b.category_id = ?
+      AND b.id <> ?
+      AND b.status = 'published'
+    ORDER BY b.total_readers DESC, b.id DESC
+    LIMIT 4
+");
+
+$relatedStmt->execute([
+    (int)$book['category_id'],
+    $bookId
+]);
+
+$relatedBooks = $relatedStmt->fetchAll(PDO::FETCH_ASSOC);
+
+$coverPath = trim((string)($book['cover_path'] ?? ''));
+
+$coverColor = trim((string)($book['cover_color'] ?? 'blue'));
+
+$rating = (float)($book['avg_rating'] ?? 0);
+
+$totalReviews = (int)($book['total_reviews'] ?? 0);
+
+$totalReaders = (int)($book['total_readers'] ?? 0);
+
+$publishYear = (int)($book['publish_year'] ?? 0);
+
+$pages = (int)($book['pages'] ?? 0);
+
+$fileFormat = strtoupper(trim((string)($book['file_format'] ?? 'EPUB')));
 ?>
 
-<div class="page-wrapper">
+<div class="book-detail-page">
 
-    <a href="/home" class="back-link">
-        <span>&#10094;</span>
-        Quay lại
-    </a>
+    <div class="container">
 
-    <div class="detail-grid">
 
-        <!-- Cột bìa sách -->
-        <div class="detail-cover-col">
-            <div class="detail-cover-box <?= e($book['coverColor']) ?>">
-                <div>
-                    <h1><?= e($book['title']) ?></h1>
-                    <p><?= e($book['author']) ?></p>
-                </div>
-            </div>
+        <div class="breadcrumb">
+            <a href="/home">Trang chủ</a>
+            <span>/</span>
 
-            <div class="detail-actions">
-                <button class="btn-buy">
-                    🛒 Mua ngay — <?= e($book['price']) ?>
-                </button>
-                <a href="/library?read=1" class="btn-read-trial">
-                    📖 Đọc thử
+            <?php if (!empty($book['category_id'])): ?>
+                <a href="/home?view=book-list&category=<?= (int)$book['category_id'] ?>">
+                    <?= e((string)($book['category_name'] ?? 'Danh mục')) ?>
                 </a>
-                <div class="btn-row">
-                    <button class="btn-secondary">❤️ Yêu thích</button>
-                    <button class="btn-secondary">🔗 Chia sẻ</button>
-                </div>
-            </div>
+                <span>/</span>
+            <?php endif; ?>
+
+            <span><?= e((string)$book['title']) ?></span>
         </div>
 
-        <!-- Cột thông tin -->
-        <div class="detail-info-col">
 
-            <h1 class="detail-book-title"><?= e($book['title']) ?></h1>
-            <p class="detail-book-author">Tác giả: <?= e($book['author']) ?></p>
+        
 
-            <div class="rating-row">
-                <span class="rating-star">★</span>
-                <span class="rating-value"><?= e($book['rating']) ?></span>
-                <span class="rating-count">(1.234 đánh giá)</span>
-                <span class="rating-sep">•</span>
-                <span class="rating-readers"><?= e($book['readers']) ?> độc giả</span>
+        <div class="book-detail">
+
+          
+
+            <div class="book-detail-cover">
+
+                <?php if ($coverPath !== ''): ?>
+
+                    <img
+                        src="<?= e($coverPath) ?>"
+                        alt="<?= e((string)$book['title']) ?>"
+                    >
+
+                <?php else: ?>
+
+                    <div class="book-cover <?= e($coverColor) ?>">
+                        <span><?= e((string)$book['title']) ?></span>
+                    </div>
+
+                <?php endif; ?>
+
             </div>
 
-            <!-- Thông tin chi tiết -->
-            <div class="detail-section">
-                <h3 class="detail-section-title">Thông tin chi tiết</h3>
-                <div class="info-table">
-                    <div class="info-row">
-                        <span class="info-label">Nhà xuất bản:</span>
-                        <span class="info-value"><?= e($book['publisher']) ?></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Năm xuất bản:</span>
-                        <span class="info-value"><?= e($book['year']) ?></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Số trang:</span>
-                        <span class="info-value"><?= e($book['pages']) ?> trang</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Định dạng:</span>
-                        <span class="info-value">eBook (PDF, EPUB)</span>
-                    </div>
+
+          
+
+            <div class="book-detail-content">
+
+                <div class="book-detail-category">
+                    <?= e((string)($book['category_name'] ?? 'Sách điện tử')) ?>
                 </div>
-            </div>
 
-            <!-- Giới thiệu -->
-            <div class="detail-section">
-                <h3 class="detail-section-title">Giới thiệu sách</h3>
-                <p class="detail-description"><?= e($book['description']) ?></p>
-            </div>
+                <h1 class="book-detail-title">
+                    <?= e((string)$book['title']) ?>
+                </h1>
 
-            <!-- Đặc điểm nổi bật -->
-            <div class="detail-section">
-                <div class="features-box">
-                    <h3 class="detail-section-title">Đặc điểm nổi bật</h3>
-                    <ul class="features-list">
-                        <li><span class="feature-check">✓</span><span>Đọc trên mọi thiết bị: điện thoại, máy tính bảng, máy tính</span></li>
-                        <li><span class="feature-check">✓</span><span>Đánh dấu trang, ghi chú và tra cứu từ điển ngay trong sách</span></li>
-                        <li><span class="feature-check">✓</span><span>Tải về để đọc offline, không cần kết nối internet</span></li>
-                        <li><span class="feature-check">✓</span><span>Cập nhật và hỗ trợ miễn phí trọn đời</span></li>
-                    </ul>
+                <p class="book-detail-author">
+                    Tác giả:
+                    <strong><?= e((string)($book['author'] ?? 'Đang cập nhật')) ?></strong>
+                </p>
+
+
+                
+
+                <div class="book-detail-rating">
+
+                    <span class="rating-stars">
+                        ★
+                    </span>
+
+                    <strong>
+                        <?= number_format($rating, 1) ?>
+                    </strong>
+
+                    <span>
+                        (<?= $totalReviews ?> đánh giá)
+                    </span>
+
+                    <span>
+                        • <?= number_format($totalReaders) ?> lượt đọc
+                    </span>
+
                 </div>
-            </div>
 
-        </div>
-    </div>
 
-    <!-- Sách liên quan -->
-    <div class="related-section">
-        <h3>Sách liên quan</h3>
-        <div class="related-grid">
-            <?php foreach ($relatedBooks as $ri => $rel): ?>
-            <a href="/home?view=book-detail&book=<?= $ri % 4 ?>" class="related-card">
-                <div class="related-cover" style="<?= $rel['coverBg'] ?>">
+               
+
+                <div class="book-detail-price">
+
+                    <strong>
+                        <?= formatPrice($currentPrice) ?>
+                    </strong>
+
+                    <?php if ($isDiscounted): ?>
+
+                        <span class="old-price">
+                            <?= formatPrice($listPrice) ?>
+                        </span>
+
+                    <?php endif; ?>
+
+                </div>
+
+
+                
+
+                <div class="book-detail-info">
+
                     <div>
-                        <h4><?= e($rel['title']) ?></h4>
-                        <p><?= e($rel['author']) ?></p>
+                        <span>Nhà xuất bản</span>
+                        <strong>
+                            <?= e((string)($book['publisher_name'] ?? 'Đang cập nhật')) ?>
+                        </strong>
                     </div>
-                </div>
-                <div class="related-card-body">
-                    <h4><?= e($rel['title']) ?></h4>
-                    <p><?= e($rel['author']) ?></p>
-                    <div class="related-price-row">
-                        <span class="related-price"><?= e($rel['price']) ?></span>
-                        <span class="related-rating">⭐ <?= e($rel['rating']) ?></span>
+
+                    <div>
+                        <span>Năm xuất bản</span>
+                        <strong>
+                            <?= $publishYear > 0 ? $publishYear : 'Đang cập nhật' ?>
+                        </strong>
                     </div>
-                    <div class="related-sold"><?= e($rel['sold']) ?> đã bán</div>
+
+                    <div>
+                        <span>Số trang</span>
+                        <strong>
+                            <?= $pages > 0 ? number_format($pages) : 'Đang cập nhật' ?>
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Định dạng</span>
+                        <strong>
+                            <?= e($fileFormat) ?>
+                        </strong>
+                    </div>
+
                 </div>
-            </a>
-            <?php endforeach; ?>
+
+
+            
+
+                <div class="book-detail-actions">
+
+                    <a
+                        href="/library?read=<?= $bookId ?>"
+                        class="btn btn-primary"
+                    >
+                        📖 Đọc thử
+                    </a>
+
+
+                    <form method="POST" style="display:inline;">
+
+                        <input
+                            type="hidden"
+                            name="toggle_favorite"
+                            value="1"
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn btn-outline"
+                        >
+                            <?= $isFavorite ? '♥ Đã yêu thích' : '♡ Yêu thích' ?>
+                        </button>
+
+                    </form>
+
+
+                    <button
+                        type="button"
+                        class="btn btn-outline"
+                        onclick="shareBook()"
+                    >
+                        ↗ Chia sẻ
+                    </button>
+
+                </div>
+
+            </div>
+
         </div>
+
+
+        <!-- Mô tả -->
+
+        <div class="book-detail-description">
+
+            <h2>Giới thiệu sách</h2>
+
+            <div>
+                <?= nl2br(e((string)($book['description'] ?? 'Chưa có mô tả cho sách này.'))) ?>
+            </div>
+
+        </div>
+
+
+    
+
+        <?php if (!empty($relatedBooks)): ?>
+
+            <section class="related-books">
+
+                <div class="section-heading">
+
+                    <h2>Sách liên quan</h2>
+
+                    <a href="/home?view=book-list&category=<?= (int)$book['category_id'] ?>">
+                        Xem tất cả
+                    </a>
+
+                </div>
+
+
+                <div class="book-grid">
+
+                    <?php foreach ($relatedBooks as $related): ?>
+
+                        <?php
+                        $relatedCover = trim(
+                            (string)($related['cover_path'] ?? '')
+                        );
+
+                        $relatedColor = trim(
+                            (string)($related['cover_color'] ?? 'blue')
+                        );
+
+                        $relatedPrice = $related['sale_price'] !== null
+                            && (float)$related['sale_price'] > 0
+                            ? (float)$related['sale_price']
+                            : (float)($related['digital_price'] ?? 0);
+                        ?>
+
+                        <article class="book-card">
+
+                            <a
+                                href="/home?view=book-detail&book=<?= (int)$related['id'] ?>"
+                                class="book-card-cover"
+                            >
+
+                                <?php if ($relatedCover !== ''): ?>
+
+                                    <img
+                                        src="<?= e($relatedCover) ?>"
+                                        alt="<?= e((string)$related['title']) ?>"
+                                    >
+
+                                <?php else: ?>
+
+                                    <div class="book-cover <?= e($relatedColor) ?>">
+                                        <span>
+                                            <?= e((string)$related['title']) ?>
+                                        </span>
+                                    </div>
+
+                                <?php endif; ?>
+
+                            </a>
+
+
+                            <div class="book-card-content">
+
+                                <div class="book-card-category">
+                                    <?= e((string)($related['category_name'] ?? 'Sách')) ?>
+                                </div>
+
+                                <h3 class="book-card-title">
+
+                                    <a href="/home?view=book-detail&book=<?= (int)$related['id'] ?>">
+                                        <?= e((string)$related['title']) ?>
+                                    </a>
+
+                                </h3>
+
+                                <p class="book-card-author">
+                                    <?= e((string)($related['author'] ?? '')) ?>
+                                </p>
+
+                                <div class="book-card-bottom">
+
+                                    <strong>
+                                        <?= formatPrice($relatedPrice) ?>
+                                    </strong>
+
+                                    <span>
+                                        ★ <?= number_format(
+                                            (float)($related['avg_rating'] ?? 0),
+                                            1
+                                        ) ?>
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </article>
+
+                    <?php endforeach; ?>
+
+                </div>
+
+            </section>
+
+        <?php endif; ?>
+
     </div>
 
 </div>
+
+
+<script>
+function shareBook() {
+    const url = window.location.href;
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url)
+            .then(() => {
+                alert('Đã sao chép liên kết sách!');
+            })
+            .catch(() => {
+                alert(url);
+            });
+    } else {
+        alert(url);
+    }
+}
+</script>
