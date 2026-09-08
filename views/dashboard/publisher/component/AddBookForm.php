@@ -30,8 +30,19 @@ try {
     $dbError = $e->getMessage();
 }
 
-// Lấy ID Nhà xuất bản (Mặc định là 1 nếu chưa có Session)
-$publisher_id = $_SESSION['publisher_id'] ?? $_SESSION['user_id'] ?? 1;
+// Lấy ID Nhà xuất bản (tra cứu chuẩn theo publishers.id từ session / user_id)
+$publisher_id = $_SESSION['publisher_id'] ?? null;
+if (empty($publisher_id) && isset($pdo)) {
+    $userId = $_SESSION['user_id'] ?? null;
+    if ($userId) {
+        $stmtP = $pdo->prepare("SELECT id FROM publishers WHERE user_id = ? LIMIT 1");
+        $stmtP->execute([$userId]);
+        $publisher_id = (int)$stmtP->fetchColumn();
+    }
+}
+if (empty($publisher_id)) {
+    $publisher_id = (isset($publisherId) && !empty($publisherId)) ? (int)$publisherId : 1;
+}
 
 // ==========================================================
 // 2. XỬ LÝ KHI NHẤN NÚT "LƯU SÁCH" (SUBMIT FORM)
@@ -43,7 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
     $author        = trim($_POST['author'] ?? '');
     $category_name = trim($_POST['category'] ?? '');
     $description   = trim($_POST['description'] ?? '');
-    $isbn          = trim($_POST['isbn'] ?? '');
+    $isbnRaw       = trim($_POST['isbn'] ?? '');
+    $isbn          = !empty($isbnRaw) ? $isbnRaw : null;
     $publish_year  = !empty($_POST['publish_year']) ? (int)$_POST['publish_year'] : (int)date('Y');
     $list_price    = !empty($_POST['list_price']) ? (float)$_POST['list_price'] : 0;
     $digital_price = !empty($_POST['digital_price']) ? (float)$_POST['digital_price'] : 0;
@@ -53,10 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
 
     if (!empty($title) && !empty($author)) {
 
-        // Tạo slug tự động (vd: "Kỹ Năng Lãnh Đạo" -> "ky-nang-lanh-dao")
-        $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
-        if (empty($slug)) {
-            $slug = 'book-' . time();
+        // Tạo slug tự động và xử lý trùng lặp
+        $baseSlug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+        $baseSlug = rtrim($baseSlug, '-') ?: 'book';
+        $slug = $baseSlug;
+
+        if (isset($pdo)) {
+            $stmtSlug = $pdo->prepare("SELECT COUNT(*) FROM books WHERE slug = ?");
+            $stmtSlug->execute([$slug]);
+            if ((int)$stmtSlug->fetchColumn() > 0) {
+                $slug = $baseSlug . '-' . substr(md5(uniqid((string)mt_rand(), true)), 0, 6);
+            }
         }
 
         // Ánh xạ Thể loại sang ID (Mặc định = 1)

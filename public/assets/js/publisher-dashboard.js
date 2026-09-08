@@ -234,28 +234,31 @@ function initialize() {
   // Form [data-book-form] được xử lý trực tiếp bằng PHP POST trong AddBookForm.php
 
 
-  const modal = bySelector("[data-promotion-modal]");
-  bySelector("[data-open-promotion]")?.addEventListener("click", () => {
-    modal.hidden = false;
-    document.body.style.overflow = "hidden";
-  });
-  all("[data-close-modal]").forEach((button) =>
-    button.addEventListener("click", () => {
-      if (modal) modal.hidden = true;
-      document.body.style.overflow = "";
-    }),
-  );
-  modal?.addEventListener("click", (event) => {
-    if (event.target === modal) {
+  // Event delegation for promotion modal open/close
+  document.addEventListener("click", (event) => {
+    const openBtn = event.target.closest("[data-open-promotion]");
+    if (openBtn) {
+      const modal = bySelector("[data-promotion-modal]");
+      if (modal) {
+        modal.hidden = false;
+        document.body.style.overflow = "hidden";
+      }
+    }
+
+    const closeBtn = event.target.closest("[data-close-modal]");
+    if (closeBtn) {
+      const modal = bySelector("[data-promotion-modal]");
+      if (modal) {
+        modal.hidden = true;
+        document.body.style.overflow = "";
+      }
+    }
+
+    const modal = bySelector("[data-promotion-modal]");
+    if (modal && !modal.hidden && event.target === modal) {
       modal.hidden = true;
       document.body.style.overflow = "";
     }
-  });
-  bySelector("[data-promotion-form]")?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    modal.hidden = true;
-    document.body.style.overflow = "";
-    showToast("Chiến dịch đã được kiểm tra. Kết nối API để lưu chính thức.");
   });
   bySelector("[data-generate-codes]")?.addEventListener("click", () =>
     showToast("Đã tạo 50 mã nháp. Kết nối API để lưu và phân phối mã."),

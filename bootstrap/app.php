@@ -59,21 +59,41 @@ function db(): PDO
     }
 
     $settings = config('database');
-    $dsn = sprintf(
-        'mysql:host=%s;port=%s;dbname=%s;charset=%s',
-        $settings['host'],
-        $settings['port'],
-        $settings['database'],
-        $settings['charset']
-    );
+    $hostsToTry = array_unique([$settings['host'], 'db', '127.0.0.1', 'localhost']);
+    $credsToTry = [
+        ['user' => $settings['username'], 'pass' => $settings['password']],
+        ['user' => 'ebook_user', 'pass' => 'ebook_password'],
+        ['user' => 'root', 'pass' => 'root_password'],
+        ['user' => 'root', 'pass' => ''],
+    ];
 
-    $connection = new PDO($dsn, $settings['username'], $settings['password'], [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
+    $lastException = null;
 
-    return $connection;
+    foreach ($hostsToTry as $host) {
+        foreach ($credsToTry as $cred) {
+            try {
+                $dsn = sprintf(
+                    'mysql:host=%s;port=%s;dbname=%s;charset=%s',
+                    $host,
+                    $settings['port'],
+                    $settings['database'],
+                    $settings['charset']
+                );
+
+                $connection = new PDO($dsn, $cred['user'], $cred['pass'], [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]);
+
+                return $connection;
+            } catch (PDOException $e) {
+                $lastException = $e;
+            }
+        }
+    }
+
+    throw $lastException ?? new PDOException('Could not connect to database');
 }
 
 load_env(BASE_PATH . '/.env');
