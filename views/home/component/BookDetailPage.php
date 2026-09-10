@@ -32,7 +32,7 @@ $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_favorite'])) {
 
     if ($userId <= 0) {
-        header('Location: /login');
+        header('Location: /home?view=login');
         exit;
     }
 
@@ -71,7 +71,7 @@ $stmt = $db->prepare("
     SELECT
         b.*,
         c.name AS category_name,
-        p.name AS publisher_name
+        p.company_name AS publisher_name
     FROM books b
     LEFT JOIN categories c
         ON c.id = b.category_id
