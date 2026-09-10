@@ -21,6 +21,6 @@ $activeTab = 'Tháng này';
         </div>
     </div>
     <div class="chart-container">
-        <canvas id="revenueBarChart"></canvas>
+        <canvas id="revenueBarChart" data-chart='<?= htmlspecialchars(json_encode($adminPeriodData ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>'></canvas>
     </div>
 </div>

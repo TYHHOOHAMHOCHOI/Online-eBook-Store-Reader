@@ -939,12 +939,16 @@ a {
 
 .modal-backdrop {
   position: fixed;
-  z-index: 10;
+  z-index: 100;
   inset: 0;
   display: grid;
   place-items: center;
   padding: 20px;
-  background: #102a4366;
+  background: rgba(16, 42, 67, 0.5);
+}
+
+.modal-backdrop[hidden] {
+  display: none !important;
 }
 
 .modal {
@@ -980,6 +984,7 @@ a {
   color: var(--muted);
   background: #f0f2f4;
   font-size: 20px;
+  cursor: pointer;
 }
 
 .report-chart {

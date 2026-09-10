@@ -61,13 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $database->prepare(
                 'SELECT id, name, email, phone, password_hash, role
                  FROM users
-                 WHERE (email IS NOT NULL AND email = :contact)
-                    OR (phone IS NOT NULL AND phone = :contact)
+                 WHERE (email IS NOT NULL AND email = :email)
+                    OR (phone IS NOT NULL AND phone = :phone)
                  LIMIT 1'
             );
 
             $stmt->execute([
-                'contact' => $email
+                'email' => $email,
+                'phone' => $email,
             ]);
 
             $user = $stmt->fetch();
@@ -95,14 +96,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_email'] = $user['email'] ?? $user['phone'];
                 $_SESSION['user_role'] = $user['role'];
 
-                // Chuyển về Home
+                // Chuyển hướng theo vai trò
+                if ($user['role'] === 'publisher') {
+                    $stmtPub = $database->prepare('SELECT id FROM publishers WHERE user_id = ? LIMIT 1');
+                    $stmtPub->execute([$user['id']]);
+                    $_SESSION['publisher_id'] = (int)($stmtPub->fetchColumn() ?: 0);
+                    header('Location: /publisher-dashboard');
+                    exit;
+                } elseif ($user['role'] === 'admin') {
+                    header('Location: /');
+                    exit;
+                }
+
+                // Customer / Độc giả về trang Home
                 header('Location: /home');
                 exit;
             }
 
         } catch (PDOException $e) {
-
-            $loginErrors[] = 'Không thể kết nối với cơ sở dữ liệu.';
+            error_log('Login PDO Error: ' . $e->getMessage());
+            $loginErrors[] = 'Không thể kết nối với cơ sở dữ liệu: ' . $e->getMessage();
         }
     }
 }

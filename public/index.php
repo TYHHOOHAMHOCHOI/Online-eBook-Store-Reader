@@ -14,6 +14,7 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $path = rtrim($path, '/') ?: '/';
 
 if ($path === '/') {
+    // admin_dashboard.php sets $currentTitle itself via ?page= routing
     $pageTitle = 'Admin Dashboard';
     require BASE_PATH . '/views/dashboard/admin/admin_dashboard.php';
     exit;
@@ -26,8 +27,8 @@ if ($path === '/register') {
     exit;
 }
 
-if ($path === '/login') {
-    $pageTitle = 'Đăng nhập - Readly';
+if ($path === '/login' || $path === '/publisher-login') {
+    $pageTitle = ($path === '/publisher-login') ? 'Đăng nhập Nhà phát hành - Readly' : 'Đăng nhập - Readly';
     $_GET['view'] = 'login';
     require BASE_PATH . '/views/home/home.php';
     exit;

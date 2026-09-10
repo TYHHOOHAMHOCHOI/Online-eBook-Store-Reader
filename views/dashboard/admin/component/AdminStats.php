@@ -4,43 +4,9 @@
  */
 declare(strict_types=1);
 
-$stats = [
-    [
-        'label' => 'Người dùng',
-        'value' => '24,583',
-        'growth' => '+12%',
-        'icon' => 'users',
-        'color' => '#087E8B'
-    ],
-    [
-        'label' => 'Nhà phát hành',
-        'value' => '1,247',
-        'growth' => '+8%',
-        'icon' => 'publisher',
-        'color' => '#087E8B'
-    ],
-    [
-        'label' => 'Sách',
-        'value' => '15,942',
-        'growth' => '+18%',
-        'icon' => 'file-text',
-        'color' => '#087E8B'
-    ],
-    [
-        'label' => 'Đơn hàng',
-        'value' => '8,521',
-        'growth' => '+23%',
-        'icon' => 'shopping-cart',
-        'color' => '#087E8B'
-    ],
-    [
-        'label' => 'Mã sách kích hoạt',
-        'value' => '3,128',
-        'growth' => '+15%',
-        'icon' => 'credit-card',
-        'color' => '#087E8B'
-    ],
-];
+if (!isset($stats) || !is_array($stats)) {
+    $stats = [];
+}
 ?>
 <div class="stats-grid">
     <?php foreach ($stats as $stat): ?>

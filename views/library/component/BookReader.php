@@ -1,112 +1,244 @@
 <?php
-$bookInfo = [
-    'title' => isset($selectedBook) ? $selectedBook['title'] : 'Tên sách mặc định',
-    'author' => isset($selectedBook) ? $selectedBook['author'] : 'Tác giả',
-    'currentChapter' => 3,
-];
-
-$chapters = [
-    ['id' => 1, 'title' => 'Phần một', 'page' => 1],
-    ['id' => 2, 'title' => 'Phần hai', 'page' => 45],
-    ['id' => 3, 'title' => 'Phần ba', 'page' => 89],
-    ['id' => 4, 'title' => 'Phần bốn', 'page' => 134],
-    ['id' => 5, 'title' => 'Phần năm', 'page' => 178],
-    ['id' => 6, 'title' => 'Phần sáu', 'page' => 210],
-];
-
-$sampleText = "Cậu bé tên là Santiago. Trời đã xế chiều khi đàn cừu đi đến một nhà thờ cổ kính nơi người chăn cừu từng nghỉ đêm. Mái nhà của nhà thờ từ lâu đã đổ sập, và có một cây sung lớn mọc lên chỗ thánh đường cũ.\n\nCậu quyết định sẽ dành đêm nay ở đấy. Cậu dồn hết đàn cừu vào cửa đổ nát, rồi xếp những tấm gỗ thành chướng ngại vật để ngăn không cho cừu đi ra ngoài trong đêm. Không có sói ở vùng này, nhưng một khi nào có con cừu đi lạc vào đêm tối, cậu sẽ phải mất cả buổi sáng hôm sau để tìm nó.\n\nCậu trải chiếc áo choàng trên nền đất và nằm xuống, dùng cuốn sách mình vừa đọc dở làm gối. Trước khi ngủ, cậu nghĩ rằng mình cần phải đọc thêm vài cuốn sách dày hơn. Dùng sách làm gối sẽ thoải mái hơn nhiều.";
+// Kiểm tra biến $selectedBook truyền từ main.php
+if (!isset($selectedBook)) {
+    header("Location: /library");
+    exit;
+}
 ?>
-
-<div id="reader-container" class="reader-container" style="background-color: #F4ECD8; color: #5B4636;">
-    
-    <div class="reader-content">
-        <div class="reader-header">
-            <h1 class="reader-title"><?= $bookInfo['title'] ?></h1>
-            <p class="reader-author"><?= $bookInfo['author'] ?></p>
-        </div>
-
-        <h2 class="reader-chapter-title">Phần ba</h2>
-
-        <div id="reading-text" class="reading-text" style="font-size: 18px; font-family: Georgia, serif;">
-            <?= $sampleText ?>
-        </div>
-    </div>
-
-    <div class="reader-taskbar">
-        <div class="taskbar-inner">
-            <div class="flex items-center" style="gap: 1rem;">
-                <a href="?" class="taskbar-btn">← Trở lại</a>
-                <span style="font-size: 0.875rem; opacity: 0.7;">Chương <?= $bookInfo['currentChapter'] ?> / <?= count($chapters) ?></span>
-            </div>
-
-            <div class="flex items-center" style="gap: 0.75rem;">
-                <button onclick="togglePanel('chapters-panel')" class="taskbar-btn">Mục lục</button>
-                <button onclick="togglePanel('settings-panel')" class="taskbar-btn">Cài đặt</button>
-            </div>
-
-            <div class="flex items-center" style="gap: 0.75rem;">
-                <div class="reader-progress-bg">
-                    <div class="reader-progress-fill" style="width: 45%;"></div>
-                </div>
-                <span style="font-size: 0.875rem; opacity: 0.7;">45%</span>
-            </div>
-        </div>
-    </div>
-
-    <div id="chapters-overlay" class="overlay" onclick="togglePanel('chapters-panel')"></div>
-    <div id="chapters-panel" class="panel">
-        <div class="panel-header">
-            <h3><?= $bookInfo['title'] ?></h3>
-            <button onclick="togglePanel('chapters-panel')" style="border: none; background: transparent; font-size: 1.2rem; cursor: pointer;">❌</button>
-        </div>
-        <div>
-            <?php foreach ($chapters as $chapter) : ?>
-                <button class="chapter-btn" style="<?= $chapter['id'] == $bookInfo['currentChapter'] ? 'background-color: #087E8B20; border-left: 4px solid #087E8B;' : '' ?>">
-                    <span><?= $chapter['id'] ?>. <?= $chapter['title'] ?></span>
-                    <span style="opacity: 0.6;">Trang <?= $chapter['page'] ?></span>
-                </button>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <div id="settings-overlay" class="overlay" onclick="togglePanel('settings-panel')"></div>
-    <div id="settings-panel" class="panel">
-        <div class="panel-header">
-            <h3>Cài đặt hiển thị</h3>
-            <button onclick="togglePanel('settings-panel')" style="border: none; background: transparent; font-size: 1.2rem; cursor: pointer;">❌</button>
-        </div>
-        <div style="margin-bottom: 2rem;">
-            <h4 style="margin-bottom: 1rem; font-weight: 600;">Cỡ chữ</h4>
-            <div class="flex items-center" style="gap: 1rem;">
-                <button onclick="changeFontSize(-2)" class="font-ctrl-btn">➖</button>
-                <span id="font-size-display" style="font-weight: bold;">18px</span>
-                <button onclick="changeFontSize(2)" class="font-ctrl-btn">➕</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    function togglePanel(panelId) {
-        var panel = document.getElementById(panelId);
-        var overlay = document.getElementById(panelId.replace('panel', 'overlay'));
-        
-        if (panel.style.display === "block") {
-            panel.style.display = "none";
-            overlay.style.display = "none";
-        } else {
-            panel.style.display = "block";
-            overlay.style.display = "block";
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang đọc: <?= htmlspecialchars($selectedBook['title']) ?></title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #2b2b2b;
+            --font-family: 'Segoe UI', Arial, sans-serif;
+            --font-size: 18px;
         }
-    }
 
-    var currentSize = 18;
-    function changeFontSize(change) {
-        currentSize += change;
-        if (currentSize < 14) currentSize = 14;
-        if (currentSize > 28) currentSize = 28;
-        
-        document.getElementById('reading-text').style.fontSize = currentSize + 'px';
-        document.getElementById('font-size-display').innerText = currentSize + 'px';
-    }
-</script>
+        body.theme-sepia { --bg-color: #f8f1e3; --text-color: #4f3b2b; }
+        body.theme-dark { --bg-color: #1a1a1a; --text-color: #d1d1d1; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            transition: background-color 0.3s, color 0.3s;
+            user-select: text; /* Cho phép copy văn bản */
+        }
+
+        /* Toolbar điều khiển phía trên */
+        .reader-toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        body.theme-dark .reader-toolbar {
+            background: rgba(30, 30, 30, 0.95);
+            border-bottom-color: #333;
+            color: #fff;
+        }
+
+        .controls-group { display: flex; align-items: center; gap: 12px; }
+
+        .btn-ctrl {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        body.theme-dark .btn-ctrl { background: #333; border-color: #555; color: #fff; }
+
+        select.btn-ctrl { padding: 6px 8px; }
+
+        /* Vùng hiển thị nội dung sách */
+        .reader-container {
+            max-width: 800px;
+            margin: 80px auto 100px auto;
+            padding: 0 25px;
+            font-size: var(--font-size);
+            line-height: 1.8;
+            word-wrap: break-word;
+        }
+
+        .book-header { text-align: center; margin-bottom: 40px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
+
+        /* Thanh tiến độ cố định phía dưới */
+        .reader-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-top: 1px solid #e5e7eb;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        body.theme-dark .reader-footer { background: rgba(30, 30, 30, 0.95); border-top-color: #333; }
+
+        .progress-slider { flex: 1; }
+    </style>
+</head>
+<body>
+
+    <div class="reader-toolbar">
+        <div class="controls-group">
+            <a href="/views/library/main.php" class="btn-ctrl" style="text-decoration: none;">← Thư viện</a>
+            <strong style="font-size: 0.95rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <?= htmlspecialchars($selectedBook['title']) ?>
+            </strong>
+        </div>
+
+        <div class="controls-group">
+            <select id="fontSelect" class="btn-ctrl" onchange="changeFont(this.value)">
+                <option value="'Segoe UI', Arial, sans-serif">Font Sans-Serif</option>
+                <option value="Georgia, serif">Font Georgia (Serif)</option>
+                <option value="'Times New Roman', serif">Font Times New Roman</option>
+                <option value="'Courier New', monospace">Font Monospace</option>
+            </select>
+
+            <button class="btn-ctrl" onclick="changeFontSize(-2)">A-</button>
+            <button class="btn-ctrl" onclick="changeFontSize(2)">A+</button>
+
+            <select id="themeSelect" class="btn-ctrl" onchange="changeTheme(this.value)">
+                <option value="light">☀️ Sáng</option>
+                <option value="sepia">📜 Sepia</option>
+                <option value="dark">🌙 Tối</option>
+            </select>
+
+            <button class="btn-ctrl" id="ttsBtn" onclick="toggleTextToSpeech()" style="background: #087E8B; color: white; border: none;">
+                🔊 Đọc audio
+            </button>
+        </div>
+    </div>
+
+    <div class="reader-container" id="bookContent">
+        <div class="book-header">
+            <h2><?= htmlspecialchars($selectedBook['title']) ?></h2>
+            <p>Tác giả: <i><?= htmlspecialchars($selectedBook['author']) ?></i></p>
+        </div>
+
+        <div id="textBody">
+            <?php if (!empty($selectedBook['description'])): ?>
+                <p><?= nl2br(htmlspecialchars($selectedBook['description'])) ?></p>
+            <?php endif; ?>
+
+            <p>Đây là nội dung cuốn sách <b><?= htmlspecialchars($selectedBook['title']) ?></b>. Trình đọc đã được tích hợp đầy đủ tính năng cho phép chọn và sao chép (copy) văn bản một cách dễ dàng.</p>
+            
+            <p>Bạn có thể thử dùng các công cụ phía trên để tùy chỉnh cỡ chữ lớn nhỏ, chuyển sang phông chữ Georgia kinh điển hoặc đổi giao diện nền Sepia/Tối để bảo vệ mắt khi đọc vào ban đêm.</p>
+
+            <p>Đặc biệt, tính năng lưu tiến độ tự động sẽ giúp bạn tiếp tục đọc đúng vị trí này mà không sợ bị trôi trang khi đăng nhập lại ở các lần sau!</p>
+        </div>
+    </div>
+
+    <div class="reader-footer">
+        <span style="font-size: 0.85rem; font-weight: 600;">Tiến độ đọc:</span>
+        <input type="range" id="progressSlider" class="progress-slider" min="0" max="100" value="<?= (int)$selectedBook['progress'] ?>" oninput="updateProgressLabel(this.value)" onchange="saveProgress(this.value)">
+        <span id="progressValue" style="font-size: 0.85rem; font-weight: 700; min-width: 45px;"><?= (int)$selectedBook['progress'] ?>%</span>
+    </div>
+
+    <script>
+        let currentFontSize = 18;
+        let isSpeaking = false;
+        const bookId = <?= (int)$selectedBook['id'] ?>;
+
+        // 1. Thay đổi Kích thước chữ
+        function changeFontSize(delta) {
+            currentFontSize = Math.max(12, Math.min(32, currentFontSize + delta));
+            document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+        }
+
+        // 2. Thay đổi Phông chữ
+        function changeFont(fontFamily) {
+            document.documentElement.style.setProperty('--font-family', fontFamily);
+        }
+
+        // 3. Thay đổi Giao diện Màu nền
+        function changeTheme(theme) {
+            document.body.className = '';
+            if (theme !== 'light') {
+                document.body.classList.add('theme-' + theme);
+            }
+        }
+
+        // 4. Cập nhật label tiến độ
+        function updateProgressLabel(val) {
+            document.getElementById('progressValue').innerText = val + '%';
+        }
+
+        // 5. Đọc văn bản thành tiếng (Text-to-Speech Audio)
+        function toggleTextToSpeech() {
+            if (!('speechSynthesis' in window)) {
+                alert('Trình duyệt của bạn không hỗ trợ tính năng đọc âm thanh!');
+                return;
+            }
+
+            const btn = document.getElementById('ttsBtn');
+
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                btn.innerText = '🔊 Đọc audio';
+                btn.style.background = '#087E8B';
+            } else {
+                const text = document.getElementById('bookContent').innerText;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 0.9;
+
+                utterance.onend = function() {
+                    isSpeaking = false;
+                    btn.innerText = '🔊 Đọc audio';
+                    btn.style.background = '#087E8B';
+                };
+
+                window.speechSynthesis.speak(utterance);
+                isSpeaking = true;
+                btn.innerText = '⏹️ Dừng đọc';
+                btn.style.background = '#dc2626';
+            }
+        }
+
+        // 6. Gửi AJAX Tự động Lưu tiến độ đọc vào CSDL
+        function saveProgress(percent) {
+            fetch('/api/update_progress.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `book_id=${bookId}&progress=${percent}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Đã lưu tiến độ đọc thành công!');
+                }
+            })
+            .catch(err => console.error('Lỗi lưu tiến độ:', err));
+        }
+    </script>
+</body>
+</html>

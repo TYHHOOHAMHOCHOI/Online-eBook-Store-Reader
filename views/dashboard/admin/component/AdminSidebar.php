@@ -1,31 +1,43 @@
 <?php
 /**
- * Admin Sidebar Component
+ * Admin Sidebar Component — with ?page= routing links
  */
 declare(strict_types=1);
 
+$currentPage = $_GET['page'] ?? 'dashboard';
+
+$pendingCount = isset($pendingBooks) && is_array($pendingBooks) ? count($pendingBooks) : 0;
+$pendingBadge = $pendingCount > 0 ? (string)$pendingCount : null;
+
 $navItems = [
-    ['icon' => 'dashboard', 'label' => 'Dashboard', 'active' => true, 'badge' => null],
-    ['icon' => 'users', 'label' => 'Quản lý người dùng', 'active' => false, 'badge' => null],
-    ['icon' => 'book', 'label' => 'Duyệt sách', 'active' => false, 'badge' => '12'],
-    ['icon' => 'folder', 'label' => 'Quản lý danh mục', 'active' => false, 'badge' => null],
-    ['icon' => 'receipt', 'label' => 'Giao dịch & Đối soát', 'active' => false, 'badge' => null],
+    ['page' => 'dashboard',    'icon' => 'dashboard', 'label' => 'Dashboard',              'badge' => null],
+    ['page' => 'users',        'icon' => 'users',     'label' => 'Quản lý người dùng',     'badge' => null],
+    ['page' => 'books',        'icon' => 'book',      'label' => 'Duyệt sách',             'badge' => $pendingBadge],
+    ['page' => 'categories',   'icon' => 'folder',    'label' => 'Quản lý danh mục',       'badge' => null],
+    ['page' => 'transactions', 'icon' => 'receipt',   'label' => 'Giao dịch & Đối soát',  'badge' => null],
 ];
 ?>
 <aside class="admin-sidebar">
     <!-- Logo -->
     <div class="admin-sidebar-logo">
-        <div class="admin-logo-mark">R</div>
-        <span class="admin-logo-text">readly Admin</span>
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
+            <div class="admin-logo-mark">R</div>
+            <div>
+                <span class="admin-logo-text">readly</span>
+                <small style="display:block;font-size:10px;color:#087E8B;font-weight:600;letter-spacing:.05em;">Admin Panel</small>
+            </div>
+        </a>
     </div>
 
     <!-- Navigation -->
     <nav class="admin-nav" aria-label="Menu Admin">
-        <?php foreach ($navItems as $item): ?>
-            <button type="button" 
-                    class="admin-nav-item <?= $item['active'] ? 'is-active' : '' ?>"
-                    data-toast="Chuyển đến màn hình <?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>">
-                
+        <?php foreach ($navItems as $item):
+            $isActive = ($currentPage === $item['page']);
+        ?>
+            <a href="/?page=<?= htmlspecialchars($item['page'], ENT_QUOTES, 'UTF-8') ?>"
+               class="admin-nav-item <?= $isActive ? 'is-active' : '' ?>"
+               style="text-decoration:none;">
+
                 <?php if ($item['icon'] === 'dashboard'): ?>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
                 <?php elseif ($item['icon'] === 'users'): ?>
@@ -33,7 +45,7 @@ $navItems = [
                 <?php elseif ($item['icon'] === 'book'): ?>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                 <?php elseif ($item['icon'] === 'folder'): ?>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                 <?php elseif ($item['icon'] === 'receipt'): ?>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
                 <?php endif; ?>
@@ -41,9 +53,9 @@ $navItems = [
                 <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
 
                 <?php if ($item['badge']): ?>
-                    <span class="admin-nav-badge"><?= htmlspecialchars($item['badge'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="admin-nav-badge" <?= $item['page'] === 'books' ? 'id="navPendingBadge"' : '' ?>><?= htmlspecialchars($item['badge'], ENT_QUOTES, 'UTF-8') ?></span>
                 <?php endif; ?>
-            </button>
+            </a>
         <?php endforeach; ?>
     </nav>
 
