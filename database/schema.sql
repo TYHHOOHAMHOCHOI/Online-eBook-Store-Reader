@@ -24,6 +24,7 @@ CREATE TABLE `users` (
   `phone`             VARCHAR(20)     NULL,
   `password_hash`     VARCHAR(255)    NOT NULL,
   `role`              ENUM('customer', 'publisher', 'admin') NOT NULL DEFAULT 'customer',
+  `balance`           DECIMAL(12,2)   NOT NULL DEFAULT 0.00,
   `avatar_path`       VARCHAR(255)    NULL,
   `social_provider`   ENUM('google', 'facebook') NULL,
   `social_id`         VARCHAR(255)    NULL,

@@ -331,6 +331,7 @@ function searchPageUrl(int $pageNumber): string
                             class="booklist-cover <?= e(
                                 $coverColor
                             ) ?>"
+                            style="position:relative; overflow:hidden; height:240px;"
                         >
 
                             <?php if (

@@ -10,12 +10,13 @@ $stmt = $pdo->query("
         id,
         title,
         author,
-        price AS digital_price,
-        0 AS sale_price,
-        0 AS avg_rating,
-        0 AS total_readers,
-        0 AS total_sold,
-        '' AS cover_color
+        cover_path,
+        cover_color,
+        digital_price,
+        sale_price,
+        avg_rating,
+        total_readers,
+        total_sold
     FROM books
     WHERE status = 'published'
     ORDER BY id DESC
@@ -26,29 +27,34 @@ $favoriteBooks = $stmt->fetchAll();
 
 
 
-$stmt = $pdo->query("
-    SELECT
-        id,
-        title,
-        author,
-        price AS digital_price,
-        0 AS sale_price,
-        0 AS avg_rating,
-        0 AS total_readers,
-        0 AS total_sold,
-        '' AS cover_color
-    FROM books
-    WHERE status = 'published'
-    ORDER BY id DESC
-    LIMIT 8
-");
+// Fetch categories dynamically
+$catStmt = $pdo->query("SELECT id, name FROM categories ORDER BY sort_order ASC");
+$homeCategories = $catStmt->fetchAll();
 
-$bestSellerBooks = $stmt->fetchAll();
+$selectedCatId = isset($_GET['category']) ? (int)$_GET['category'] : 0;
 
-
+if ($selectedCatId > 0) {
+    $bsStmt = $pdo->prepare("
+        SELECT id, title, author, cover_path, cover_color, digital_price, sale_price, avg_rating, total_readers, total_sold
+        FROM books
+        WHERE status = 'published' AND category_id = ?
+        ORDER BY total_sold DESC, id DESC
+        LIMIT 8
+    ");
+    $bsStmt->execute([$selectedCatId]);
+    $bestSellerBooks = $bsStmt->fetchAll();
+} else {
+    $bsStmt = $pdo->query("
+        SELECT id, title, author, cover_path, cover_color, digital_price, sale_price, avg_rating, total_readers, total_sold
+        FROM books
+        WHERE status = 'published'
+        ORDER BY total_sold DESC, id DESC
+        LIMIT 8
+    ");
+    $bestSellerBooks = $bsStmt->fetchAll();
+}
 
 $recommendedBooks = $bestSellerBooks;
-
 ?>
 
 <section class="hero-section home-container">
@@ -155,7 +161,7 @@ $recommendedBooks = $bestSellerBooks;
 
             <?php
             $books = $favoriteBooks;
-            include _DIR_ . '/BookCards.php';
+            include __DIR__ . '/BookCards.php';
             ?>
 
         <?php else: ?>
@@ -182,145 +188,68 @@ $recommendedBooks = $bestSellerBooks;
             Những cuốn sách bán chạy nhất trong tháng
         </p>
 
-        <div class="category-tabs">
+        <div class="category-tabs" id="bestSellerCategoryTabs">
 
-            <a
-                href="/home?view=book-list&category=1"
-                class="category-tab active"
+            <button
+                type="button"
+                onclick="loadCategoryBooks(0, this)"
+                class="category-tab <?= $selectedCatId === 0 ? 'active' : '' ?>"
+                style="background:none; border:none; cursor:pointer; font-family:inherit;"
             >
-                Văn học
-            </a>
+                Tất cả
+            </button>
 
-            <a
-                href="/home?view=book-list&category=2"
-                class="category-tab"
-            >
-                Kinh tế
-            </a>
-
-            <a
-                href="/home?view=book-list&category=3"
-                class="category-tab"
-            >
-                Tâm lý
-            </a>
-
-            <a
-                href="/home?view=book-list&category=4"
-                class="category-tab"
-            >
-                Kỹ năng sống
-            </a>
-
-            <a
-                href="/home?view=book-list&category=5"
-                class="category-tab"
-            >
-                Thiếu nhi
-            </a>
-
-            <a
-                href="/home?view=book-list&category=6"
-                class="category-tab"
-            >
-                Ngoại ngữ
-            </a>
-
-            <a
-                href="/home?view=book-list&category=7"
-                class="category-tab"
-            >
-                Khoa học
-            </a>
+            <?php foreach ($homeCategories as $cat): ?>
+                <button
+                    type="button"
+                    onclick="loadCategoryBooks(<?= (int)$cat['id'] ?>, this)"
+                    class="category-tab <?= $selectedCatId === (int)$cat['id'] ? 'active' : '' ?>"
+                    style="background:none; border:none; cursor:pointer; font-family:inherit;"
+                >
+                    <?= e($cat['name']) ?>
+                </button>
+            <?php endforeach; ?>
 
         </div>
 
     </div>
 
-    <div class="best-seller-grid">
+    <div class="best-seller-grid favorite-grid" id="bestSellerGrid" style="transition: opacity 0.2s;">
 
-        <?php foreach ($bestSellerBooks as $book): ?>
-
-            <a
-                href="/home?view=book-detail&book=<?= (int) $book['id']; ?>"
-                class="book-card"
-                style="text-decoration:none;color:inherit;"
-            >
-
-                <div class="book-cover favorite-cover">
-
-                    <div class="book-cover-content">
-
-                        <div class="favorite-cover-title">
-                            <?= e($book['title']); ?>
-                        </div>
-
-                        <div class="favorite-cover-author">
-                            <?= e($book['author']); ?>
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="book-card-content">
-
-                    <h3>
-                        <?= e($book['title']); ?>
-                    </h3>
-
-                    <p class="book-author">
-                        <?= e($book['author']); ?>
-                    </p>
-
-                    <div class="book-rating-row">
-
-                        <div class="book-rating">
-
-                            <span>
-                                ★
-                            </span>
-
-                            <span style="font-weight:600;">
-                                <?= number_format(
-                                    (float) $book['avg_rating'],
-                                    1
-                                ); ?>
-                            </span>
-
-                        </div>
-
-                        <span class="book-readers">
-                            • <?= number_format(
-                                (int) $book['total_readers']
-                            ); ?> đã đọc
-                        </span>
-
-                    </div>
-
-                    <div class="book-price">
-
-                        <?php
-                        $price = $book['sale_price']
-                            ?: $book['digital_price'];
-                        ?>
-
-                        <?= number_format(
-                            (int) $price,
-                            0,
-                            ',',
-                            '.'
-                        ); ?>đ
-
-                    </div>
-
-                </div>
-
-            </a>
-
-        <?php endforeach; ?>
+        <?php if (!empty($bestSellerBooks)): ?>
+            <?php
+            $books = $bestSellerBooks;
+            include __DIR__ . '/BookCards.php';
+            ?>
+        <?php else: ?>
+            <p style="grid-column: 1/-1; text-align: center; color: #6B7280; padding: 40px 0;">Chưa có sách thuộc thể loại này.</p>
+        <?php endif; ?>
 
     </div>
+
+    <script>
+    function loadCategoryBooks(catId, btnEl) {
+        const tabs = document.querySelectorAll('#bestSellerCategoryTabs .category-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (btnEl) btnEl.classList.add('active');
+
+        const grid = document.getElementById('bestSellerGrid');
+        if (!grid) return;
+
+        grid.style.opacity = '0.4';
+
+        fetch('/api/get_books_by_category?category=' + catId)
+            .then(res => res.text())
+            .then(html => {
+                grid.innerHTML = html;
+                grid.style.opacity = '1';
+            })
+            .catch(err => {
+                console.error('Lỗi tải thể loại:', err);
+                grid.style.opacity = '1';
+            });
+    }
+    </script>
 
     <div class="pagination-row">
 
@@ -389,7 +318,7 @@ $recommendedBooks = $bestSellerBooks;
 
             <?php
             $books = array_slice($recommendedBooks, 0, 4);
-            include _DIR_ . '/BookCards.php';
+            include __DIR__ . '/BookCards.php';
             ?>
 
         </div>

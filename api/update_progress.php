@@ -5,14 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$host = 'db';
-$dbname = 'ebook_store';
-$username = 'ebook_user';
-$password = 'ebook_password';
+require_once dirname(__DIR__) . '/bootstrap/app.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = db();
 
     $user_id = $_SESSION['user_id'] ?? 1;
     $book_id = isset($_POST['book_id']) ? (int)$_POST['book_id'] : 0;

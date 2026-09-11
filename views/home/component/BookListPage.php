@@ -761,6 +761,7 @@ function bookListUrl(
 
                         <div
                             class="booklist-cover <?= e($coverColor) ?>"
+                            style="position:relative; overflow:hidden; height:240px;"
                         >
 
                             <?php if (!empty($book['cover_path'])): ?>

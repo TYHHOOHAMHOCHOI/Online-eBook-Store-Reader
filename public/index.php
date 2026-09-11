@@ -57,6 +57,16 @@ if ($path === '/publisher-dashboard') {
     exit;
 }
 
+if ($path === '/api/get_books_by_category') {
+    require BASE_PATH . '/api/get_books_by_category.php';
+    exit;
+}
+
+if ($path === '/api/update_progress') {
+    require BASE_PATH . '/api/update_progress.php';
+    exit;
+}
+
 http_response_code(404);
 $pageTitle = 'Không tìm thấy trang';
 require BASE_PATH . '/views/404.php';

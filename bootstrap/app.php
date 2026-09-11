@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 define('BASE_PATH', dirname(__DIR__));
 
+if (!function_exists('e')) {
+    function e($value): string
+    {
+        return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
+    }
+}
+
 /** Load variables from .env without external packages. */
 function load_env(string $path): void
 {

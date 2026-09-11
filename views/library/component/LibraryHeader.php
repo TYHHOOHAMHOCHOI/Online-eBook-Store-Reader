@@ -32,11 +32,21 @@
                 </svg>
             </button>
 
-            <div class="user-avatar">
-                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
-            </div>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="user-avatar" style="background: #087E8B; color: #ffffff; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; text-transform: uppercase;">
+                        <?= htmlspecialchars(mb_substr($_SESSION['user_name'] ?? 'U', 0, 1, 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                    <span style="font-size: 14px; font-weight: 600; color: #102A43;">
+                        <?= htmlspecialchars($_SESSION['user_name'] ?? 'Tài khoản', ENT_QUOTES, 'UTF-8') ?>
+                    </span>
+                    <a href="/home" onclick="setTimeout(function(){ if(typeof openDepositModal==='function') openDepositModal(); }, 300);" style="background: #087E8B; color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;" title="Nạp tiền vào tài khoản">
+                        <span>Số dư: <?= number_format($_SESSION['user_balance'] ?? 0, 0, ',', '.') ?>đ</span> +
+                    </a>
+                </div>
+            <?php else: ?>
+                <a href="/home?view=login" style="color: #087E8B; font-weight: 600; font-size: 14px; text-decoration: none;">Đăng nhập</a>
+            <?php endif; ?>
         </div>
 
     </div>

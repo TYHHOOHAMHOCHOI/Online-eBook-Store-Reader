@@ -108,7 +108,7 @@ if (!isset($selectedBook)) {
 
     <div class="reader-toolbar">
         <div class="controls-group">
-            <a href="/views/library/main.php" class="btn-ctrl" style="text-decoration: none;">← Thư viện</a>
+            <a href="/library" class="btn-ctrl" style="text-decoration: none;">← Thư viện</a>
             <strong style="font-size: 0.95rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                 <?= htmlspecialchars($selectedBook['title']) ?>
             </strong>

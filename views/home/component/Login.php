@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $database = db();
 
             $stmt = $database->prepare(
-                'SELECT id, name, email, phone, password_hash, role
+                'SELECT id, name, email, phone, password_hash, role, COALESCE(balance, 0) AS balance
                  FROM users
                  WHERE (email IS NOT NULL AND email = :email)
                     OR (phone IS NOT NULL AND phone = :phone)
@@ -95,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_name'] = $user['name'];
                 $_SESSION['user_email'] = $user['email'] ?? $user['phone'];
                 $_SESSION['user_role'] = $user['role'];
+                $_SESSION['user_balance'] = (float)($user['balance'] ?? 0);
 
                 // Chuyển hướng theo vai trò
                 if ($user['role'] === 'publisher') {
