@@ -1,79 +1,55 @@
 <?php
 
-// Lấy PDO từ bootstrap/app.php
+
 $pdo = db();
+
+
 
 $stmt = $pdo->query("
     SELECT
         id,
         title,
         author,
-        cover_color,
-        digital_price,
-        sale_price,
-        avg_rating,
-        total_readers,
-        total_sold
+        price AS digital_price,
+        0 AS sale_price,
+        0 AS avg_rating,
+        0 AS total_readers,
+        0 AS total_sold,
+        '' AS cover_color
     FROM books
     WHERE status = 'published'
-    ORDER BY total_readers DESC
+    ORDER BY id DESC
     LIMIT 4
 ");
 
 $favoriteBooks = $stmt->fetchAll();
 
+
+
 $stmt = $pdo->query("
     SELECT
         id,
         title,
         author,
-        cover_color,
-        digital_price,
-        sale_price,
-        avg_rating,
-        total_readers,
-        total_sold
+        price AS digital_price,
+        0 AS sale_price,
+        0 AS avg_rating,
+        0 AS total_readers,
+        0 AS total_sold,
+        '' AS cover_color
     FROM books
     WHERE status = 'published'
-    ORDER BY total_sold DESC
+    ORDER BY id DESC
     LIMIT 8
 ");
 
 $bestSellerBooks = $stmt->fetchAll();
 
-$recommendedBooks = [];
 
-if (!empty($_SESSION['user_id'])) {
 
-    $stmt = $pdo->prepare("
-        SELECT
-            b.id,
-            b.title,
-            b.author,
-            b.cover_color,
-            b.digital_price,
-            b.sale_price,
-            b.avg_rating,
-            b.total_readers,
-            b.total_sold
-        FROM user_books ub
-        INNER JOIN books b ON b.id = ub.book_id
-        WHERE ub.user_id = ?
-          AND b.status = 'published'
-        ORDER BY ub.last_read_at DESC
-        LIMIT 4
-    ");
+$recommendedBooks = $bestSellerBooks;
 
-    $stmt->execute([(int) $_SESSION['user_id']]);
-    $recommendedBooks = $stmt->fetchAll();
-}
-
-if (!$recommendedBooks) {
-    $recommendedBooks = $bestSellerBooks;
-}
 ?>
-
-
 
 <section class="hero-section home-container">
 
@@ -146,7 +122,6 @@ if (!$recommendedBooks) {
 
 </section>
 
-
 <section class="home-section home-container">
 
     <div class="section-heading">
@@ -174,15 +149,13 @@ if (!$recommendedBooks) {
 
     </div>
 
-
     <div class="favorite-grid">
 
         <?php if ($favoriteBooks): ?>
 
             <?php
-            
             $books = $favoriteBooks;
-            include __DIR__ . '/BookCards.php';
+            include _DIR_ . '/BookCards.php';
             ?>
 
         <?php else: ?>
@@ -197,9 +170,6 @@ if (!$recommendedBooks) {
 
 </section>
 
-
-
-
 <section class="home-section home-container best-seller-section">
 
     <div class="section-title-block">
@@ -211,7 +181,6 @@ if (!$recommendedBooks) {
         <p>
             Những cuốn sách bán chạy nhất trong tháng
         </p>
-
 
         <div class="category-tabs">
 
@@ -268,7 +237,6 @@ if (!$recommendedBooks) {
 
     </div>
 
-
     <div class="best-seller-grid">
 
         <?php foreach ($bestSellerBooks as $book): ?>
@@ -279,9 +247,7 @@ if (!$recommendedBooks) {
                 style="text-decoration:none;color:inherit;"
             >
 
-                <div
-                    class="book-cover favorite-cover <?= e($book['cover_color']); ?>"
-                >
+                <div class="book-cover favorite-cover">
 
                     <div class="book-cover-content">
 
@@ -297,7 +263,6 @@ if (!$recommendedBooks) {
 
                 </div>
 
-
                 <div class="book-card-content">
 
                     <h3>
@@ -307,7 +272,6 @@ if (!$recommendedBooks) {
                     <p class="book-author">
                         <?= e($book['author']); ?>
                     </p>
-
 
                     <div class="book-rating-row">
 
@@ -334,7 +298,6 @@ if (!$recommendedBooks) {
 
                     </div>
 
-
                     <div class="book-price">
 
                         <?php
@@ -359,7 +322,6 @@ if (!$recommendedBooks) {
 
     </div>
 
-
     <div class="pagination-row">
 
         <div class="pagination">
@@ -378,7 +340,6 @@ if (!$recommendedBooks) {
 
         </div>
 
-
         <a
             href="/home?view=book-list"
             class="view-all-link"
@@ -391,9 +352,6 @@ if (!$recommendedBooks) {
     </div>
 
 </section>
-
-
-
 
 <section class="recommendation-section">
 
@@ -413,7 +371,6 @@ if (!$recommendedBooks) {
 
             </div>
 
-
             <div class="personal-badge">
 
                 <div>
@@ -428,16 +385,14 @@ if (!$recommendedBooks) {
 
         </div>
 
-
         <div class="recommended-grid">
 
             <?php
             $books = array_slice($recommendedBooks, 0, 4);
-            include __DIR__ . '/BookCards.php';
+            include _DIR_ . '/BookCards.php';
             ?>
 
         </div>
-
 
         <div class="recommendation-footer">
 
