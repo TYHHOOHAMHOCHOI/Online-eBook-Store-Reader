@@ -10,6 +10,21 @@ if (!function_exists('e')) {
 
 $view = $_GET['view'] ?? 'home';
 
+/*
+|--------------------------------------------------------------------------
+| LOGIN / REGISTER
+|--------------------------------------------------------------------------
+| Xử lý trước khi xuất HTML để header('Location: ...') hoạt động bình thường.
+*/
+
+if ($view === 'login') {
+    include __DIR__ . '/component/Login.php';
+}
+
+if ($view === 'register') {
+    include __DIR__ . '/component/Register.php';
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -36,11 +51,9 @@ $view = $_GET['view'] ?? 'home';
 
 <body class="home-page">
 
-
 <header class="home-header">
 
     <div class="home-container header-inner">
-
 
         <!-- Logo -->
 
@@ -64,8 +77,6 @@ $view = $_GET['view'] ?? 'home';
         </div>
 
 
-       
-
         <nav class="header-nav">
 
             <a href="/home">
@@ -83,12 +94,7 @@ $view = $_GET['view'] ?? 'home';
         </nav>
 
 
-       
-
         <div class="header-actions">
-
-
-           
 
             <form
                 action="/home"
@@ -112,8 +118,6 @@ $view = $_GET['view'] ?? 'home';
             </form>
 
 
-        
-
             <a
                 href="/home?view=login"
                 class="login-link"
@@ -121,8 +125,6 @@ $view = $_GET['view'] ?? 'home';
                 Đăng nhập
             </a>
 
-
-            
 
             <a
                 href="/home?view=register"
@@ -132,8 +134,6 @@ $view = $_GET['view'] ?? 'home';
                 Đăng ký
             </a>
 
-
-            
 
             <a
                 href="/home?view=book-list"
@@ -151,45 +151,15 @@ $view = $_GET['view'] ?? 'home';
 
 <main>
 
-
 <?php
 
 switch ($view) {
-
-
-
-
-    case 'login':
-
-        include __DIR__ . '/component/HomePage.php';
-
-        include __DIR__ . '/component/Login.php';
-
-        break;
-
-
-
-
-
-    case 'register':
-
-        include __DIR__ . '/component/HomePage.php';
-
-        include __DIR__ . '/component/Register.php';
-
-        break;
-
-
-
-
 
     case 'book-detail':
 
         include __DIR__ . '/component/BookDetailPage.php';
 
         break;
-
-
 
 
     case 'book-list':
@@ -199,14 +169,22 @@ switch ($view) {
         break;
 
 
-
-
     case 'search':
 
         include __DIR__ . '/component/SearchResultsPage.php';
 
         break;
 
+
+    case 'login':
+    case 'register':
+
+        /*
+         * Login/Register đã được xử lý ở phía trên.
+         * Không include lại ở đây.
+         */
+
+        break;
 
 
     case 'home':
@@ -224,13 +202,11 @@ switch ($view) {
 </main>
 
 
-
 <?php
 
 include __DIR__ . '/component/Footer.php';
 
 ?>
-
 
 </body>
 
