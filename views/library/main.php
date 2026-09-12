@@ -4,26 +4,20 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // 1. KẾT NỐI DATABASE (PDO)
-$pdo = db();
+$host = 'db';
+$dbname = 'ebook_store';
+$username = 'ebook_user';
+$password = 'ebook_password';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Lỗi kết nối CSDL: " . htmlspecialchars($e->getMessage()));
+}
 
 $current_user_id = $_SESSION['user_id'] ?? 1;
-
-// 1.5. NẾU CÓ THAM SỐ ?read -> MỞ TRÌNH ĐỌC SÁCH
-if (isset($_GET['read'])) {
-    $bookId = (int)$_GET['read'];
-    $stmtRead = $pdo->prepare("
-        SELECT b.*, COALESCE(ub.progress_percent, 0) AS progress
-        FROM books b
-        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = :user_id
-        WHERE b.id = :book_id
-    ");
-    $stmtRead->execute([':user_id' => $current_user_id, ':book_id' => $bookId]);
-    $selectedBook = $stmtRead->fetch();
-    if ($selectedBook) {
-        require __DIR__ . '/component/BookReader.php';
-        exit;
-    }
-}
 
 // 2. LẤY BỘ LỌC VÀ SẮP XẾP TỪ URL
 $filter = $_GET['filter'] ?? 'all';
@@ -32,10 +26,10 @@ $sort = $_GET['sort'] ?? 'recent'; // recent | title | progress
 // 3. TRUY VẤN DANH SÁCH SÁCH TRONG THƯ VIỆN
 $sql = "
     SELECT 
-        b.id, b.title, b.author, b.cover_path, b.cover_color,
+        b.id, b.title, b.author, b.cover_image,
         COALESCE(ub.progress_percent, 0) AS progress,
         COALESCE(ub.reading_status, 'unread') AS reading_status,
-        ub.acquired_at
+        ub.updated_at, ub.acquired_at
     FROM user_books ub
     INNER JOIN books b ON ub.book_id = b.id
     WHERE ub.user_id = :user_id
@@ -55,7 +49,7 @@ switch ($sort) {
         break;
     case 'recent':
     default:
-        $sql .= " ORDER BY ub.acquired_at DESC, ub.id DESC";
+        $sql .= " ORDER BY ub.updated_at DESC, ub.acquired_at DESC";
         break;
 }
 
@@ -69,11 +63,11 @@ $books = $stmtBooks->fetchAll();
 
 // 4. LẤY DỮ LIỆU HOẠT ĐỘNG GẦN ĐÂY (3 cuốn đọc gần nhất)
 $stmtRecent = $pdo->prepare("
-    SELECT b.id, b.title, b.author, b.cover_path, b.cover_color, ub.progress_percent
+    SELECT b.id, b.title, b.author, b.cover_image, ub.progress_percent, ub.updated_at
     FROM user_books ub
     INNER JOIN books b ON ub.book_id = b.id
     WHERE ub.user_id = ? AND ub.reading_status = 'reading'
-    ORDER BY ub.acquired_at DESC LIMIT 3
+    ORDER BY ub.updated_at DESC LIMIT 3
 ");
 $stmtRecent->execute([$current_user_id]);
 $recentBooks = $stmtRecent->fetchAll();
@@ -153,7 +147,8 @@ $goalPercent = min(100, round(($readMinutesToday / $targetMinutes) * 100));
                             <div class="progress-bar-bg">
                                 <div class="progress-bar-fill" style="width: <?= (int)$rb['progress_percent'] ?>%;"></div>
                             </div>
-                            <a href="?read=<?= $rb['id'] ?>" class="btn-read">Đọc tiếp (<?= (int)$rb['progress_percent'] ?>%)</a>
+                            <!-- CẬP NHẬT LINK TRỎ SANG READER.PHP -->
+                            <a href="reader.php?book_id=<?= $rb['id'] ?>" class="btn-read">Đọc tiếp (<?= (int)$rb['progress_percent'] ?>%)</a>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -185,25 +180,16 @@ $goalPercent = min(100, round(($readMinutesToday / $targetMinutes) * 100));
                 <p style="grid-column: 1/-1; color: #6b7280; text-align: center; padding: 40px;">Không tìm thấy cuốn sách nào trong mục này.</p>
             <?php else: ?>
                 <?php foreach ($books as $b): ?>
-                    <?php 
-                        $cPath = trim((string)($b['cover_path'] ?? ''));
-                        $cColor = trim((string)($b['cover_color'] ?? 'cover-alchemist'));
-                    ?>
                     <div class="book-card">
-                        <?php if ($cPath !== ''): ?>
-                            <img src="<?= htmlspecialchars($cPath) ?>" class="book-cover" alt="<?= htmlspecialchars($b['title']) ?>">
-                        <?php else: ?>
-                            <div class="book-cover <?= htmlspecialchars($cColor) ?>" style="display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;padding:10px;text-align:center;">
-                                <?= htmlspecialchars($b['title']) ?>
-                            </div>
-                        <?php endif; ?>
+                        <img src="<?= htmlspecialchars(!empty($b['cover_image']) ? '/' . ltrim($b['cover_image'], '/') : 'https://via.placeholder.com/200x300') ?>" class="book-cover" alt="<?= htmlspecialchars($b['title']) ?>">
                         <div class="book-body">
                             <h3 class="book-title"><?= htmlspecialchars($b['title']) ?></h3>
                             <p class="book-author"><?= htmlspecialchars($b['author']) ?></p>
                             <div class="progress-bar-bg">
                                 <div class="progress-bar-fill" style="width: <?= (int)$b['progress'] ?>%;"></div>
                             </div>
-                            <a href="?read=<?= $b['id'] ?>" class="btn-read"><?= $b['progress'] > 0 ? 'Đọc tiếp' : 'Bắt đầu đọc' ?></a>
+                            <!-- CẬP NHẬT LINK TRỎ SANG READER.PHP -->
+                            <a href="reader.php?book_id=<?= $b['id'] ?>" class="btn-read"><?= $b['progress'] > 0 ? 'Đọc tiếp' : 'Bắt đầu đọc' ?></a>
                         </div>
                     </div>
                 <?php endforeach; ?>
